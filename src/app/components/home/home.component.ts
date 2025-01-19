@@ -2,11 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { DashboardService } from '../../services/dashboard.service';
+import { AuthService } from '../../services/auth.service';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 
 @Component({
     selector: 'app-home',
     standalone: true,
-    imports: [CommonModule, RouterLink],
+    imports: [CommonModule, RouterLink, ReactiveFormsModule],
     templateUrl: './home.component.html',
     styleUrl: './home.component.css'
 })
@@ -14,14 +16,27 @@ export class HomeComponent implements OnInit {
     dashboards: any[] = [];
     isLoading = false;
     error = '';
+    showCreateForm = false;
+    createForm: FormGroup;
 
     constructor(
         private dashboardService: DashboardService,
-        private router: Router
-    ) {}
+        private authService: AuthService,
+        private router: Router,
+        private fb: FormBuilder
+    ) {
+        this.createForm = this.fb.group({
+            name: ['', Validators.required]
+        });
+    }
 
     ngOnInit() {
         this.loadDashboards();
+    }
+
+    logout() {
+        this.authService.logout();
+        this.router.navigate(['/login']);
     }
 
     loadDashboards() {
@@ -38,16 +53,25 @@ export class HomeComponent implements OnInit {
         });
     }
 
+    toggleCreateForm() {
+        this.showCreateForm = !this.showCreateForm;
+        if (this.showCreateForm) {
+            this.createForm.reset();
+        }
+    }
+
     createDashboard() {
-        this.isLoading = true;
-        this.dashboardService.createDashboard().subscribe({
-            next: (response) => {
-                this.router.navigate(['/dashboard', response.id]);
-            },
-            error: (error) => {
-                this.error = error.message;
-                this.isLoading = false;
-            }
-        });
+        if (this.createForm.valid) {
+            this.isLoading = true;
+            this.dashboardService.createDashboard(this.createForm.value.name).subscribe({
+                next: (response) => {
+                    this.router.navigate(['/dashboard', response.id]);
+                },
+                error: (error) => {
+                    this.error = error.message;
+                    this.isLoading = false;
+                }
+            });
+        }
     }
 }

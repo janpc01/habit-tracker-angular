@@ -1,13 +1,15 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private baseUrl = `${environment.apiUrl}/auth`;
+  private headers = new HttpHeaders().set('Authorization', 'Bearer ' + localStorage.getItem('token'));
 
   constructor(private http: HttpClient) { }
 
@@ -22,12 +24,11 @@ export class AuthService {
   getUserId(): string | null {
     const token = localStorage.getItem('token');
     if (!token) return null;
-    // Assuming the token is a JWT and contains the user ID in the payload
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      return payload.userId;
-    } catch {
-      return null;
-    }
+    const decodedToken = jwtDecode(token);
+    return decodedToken.sub as string | null;
+  }
+
+  logout() {
+    localStorage.removeItem('token');
   }
 }
