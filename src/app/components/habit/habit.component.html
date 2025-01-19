@@ -1,0 +1,54 @@
+<div class="habit-container">
+    <div class="header">
+        <h2>Habits</h2>
+        <button 
+            class="create-habit-btn" 
+            (click)="toggleCreateForm()" 
+            [disabled]="isLoading">
+            {{ showCreateForm ? 'Cancel' : 'Create Habit' }}
+        </button>
+    </div>
+
+    <form *ngIf="showCreateForm" [formGroup]="createForm" (ngSubmit)="createHabit()" class="create-form">
+        <div class="form-group">
+            <label for="name">Habit Name</label>
+            <input 
+                id="name"
+                type="text" 
+                formControlName="name"
+                placeholder="Enter habit name"
+            >
+            <small *ngIf="createForm.get('name')?.invalid && createForm.get('name')?.touched">
+                Habit name is required
+            </small>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description (optional)</label>
+            <textarea 
+                id="description"
+                formControlName="description"
+                placeholder="Enter habit description"
+            ></textarea>
+        </div>
+
+        <button type="submit" [disabled]="!createForm.valid || isLoading">
+            {{ isLoading ? 'Creating...' : 'Create' }}
+        </button>
+    </form>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <div *ngIf="isLoading" class="loading">Loading habits...</div>
+
+    <div *ngIf="!isLoading && habits.length === 0" class="no-habits">
+        No habits found. Create one to get started!
+    </div>
+
+    <div *ngIf="!isLoading && habits.length > 0" class="habits-list">
+        <div *ngFor="let habit of habits" class="habit-item">
+            <h3>{{ habit.name }}</h3>
+            <p *ngIf="habit.description">{{ habit.description }}</p>
+        </div>
+    </div>
+</div>

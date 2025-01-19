@@ -2,16 +2,18 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { DashboardService } from '../../services/dashboard.service';
+import { HabitComponent } from '../habit/habit.component';
 
 @Component({
     selector: 'app-dashboard',
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, HabitComponent],
     templateUrl: './dashboard.component.html',
     styleUrl: './dashboard.component.css'
 })
 export class DashboardComponent implements OnInit {
     dashboardId: string = '';
+    dashboard: any;
     isLoading: boolean = true;
     error: string = '';
 
@@ -34,8 +36,7 @@ export class DashboardComponent implements OnInit {
 
         this.dashboardService.getDashboard(this.dashboardId).subscribe({
             next: (dashboard) => {
-                // Handle dashboard data
-                console.log('Dashboard loaded:', dashboard);
+                this.dashboard = dashboard;
                 this.isLoading = false;
             },
             error: (error) => {

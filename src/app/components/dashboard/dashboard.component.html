@@ -8,7 +8,10 @@
     </div>
 
     <div *ngIf="!isLoading && !error" class="dashboard-content">
-        <h1>Dashboard {{ dashboardId }}</h1>
-        <!-- Add dashboard content here -->
+        <div class="dashboard-header">
+            <h1>{{ dashboard?.name || 'Dashboard ' + dashboardId }}</h1>
+        </div>
+
+        <app-habit [dashboardId]="dashboardId"></app-habit>
     </div>
 </div>
