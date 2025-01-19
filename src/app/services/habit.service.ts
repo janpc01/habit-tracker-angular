@@ -8,7 +8,9 @@ import { AuthService } from './auth.service';
     providedIn: 'root'
 })
 export class HabitService {
-    private baseUrl = `${environment.apiUrl}/habits`;
+    private baseUrl = `${environment.apiUrl}`;
+    private habitsUrl = `${this.baseUrl}/habits`;
+    private completionsUrl = `${this.baseUrl}/habit-completions`;
 
     constructor(
         private http: HttpClient,
@@ -25,7 +27,7 @@ export class HabitService {
             return throwError(() => new Error('User not authenticated'));
         }
         return this.http.post(
-            `${this.baseUrl}/user/${userId}/dashboard/${dashboardId}`,
+            `${this.habitsUrl}/user/${userId}/dashboard/${dashboardId}`,
             habitData, 
             { headers: this.getHeaders() }
         );
@@ -37,7 +39,31 @@ export class HabitService {
             return throwError(() => new Error('User not authenticated'));
         }
         return this.http.get(
-            `${this.baseUrl}/dashboard/${dashboardId}`,
+            `${this.habitsUrl}/dashboard/${dashboardId}`,
+            { headers: this.getHeaders() }
+        );
+    }
+
+    logHabitCompletion(habitId: number, date: string, completed: boolean, notes?: string): Observable<any> {
+      const params = {
+          date,
+          completed: completed.toString(),
+          notes: notes || ''
+      };
+      
+      return this.http.post(
+          `${this.completionsUrl}/habit/${habitId}`,
+          null,
+          { 
+              headers: this.getHeaders(),
+              params
+          }
+      );
+    }
+
+    getHabitCompletions(habitId: number): Observable<any> {
+        return this.http.get(
+            `${this.completionsUrl}/habit/${habitId}`,
             { headers: this.getHeaders() }
         );
     }

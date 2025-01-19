@@ -47,8 +47,50 @@
 
     <div *ngIf="!isLoading && habits.length > 0" class="habits-list">
         <div *ngFor="let habit of habits" class="habit-item">
-            <h3>{{ habit.name }}</h3>
+            <div class="habit-header">
+                <h3>{{ habit.name }}</h3>
+                <button 
+                    class="log-btn" 
+                    (click)="toggleLogForm(habit)"
+                    [disabled]="isLoading">
+                    {{ selectedHabit?.id === habit.id ? 'Cancel' : 'Log' }}
+                </button>
+            </div>
             <p *ngIf="habit.description">{{ habit.description }}</p>
+
+            <form *ngIf="selectedHabit?.id === habit.id" [formGroup]="logForm" (ngSubmit)="logCompletion(habit.id)" class="log-form">
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input 
+                        id="date"
+                        type="date" 
+                        formControlName="date"
+                    >
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input 
+                            type="checkbox" 
+                            formControlName="completed"
+                        >
+                        Completed
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes (optional)</label>
+                    <textarea 
+                        id="notes"
+                        formControlName="notes"
+                        placeholder="Add notes..."
+                    ></textarea>
+                </div>
+                <button type="submit" [disabled]="!logForm.valid || isLoading">
+                    {{ isLoading ? 'Saving...' : 'Save' }}
+                </button>
+                <button type="button" (click)="toggleLogForm(habit)">
+                    Cancel
+                </button>
+            </form>
         </div>
     </div>
 </div>

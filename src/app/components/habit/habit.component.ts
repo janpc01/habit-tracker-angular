@@ -17,6 +17,8 @@ export class HabitComponent implements OnInit {
     error = '';
     showCreateForm = false;
     createForm: FormGroup;
+    logForm: FormGroup;
+    selectedHabit: any = null;
 
     constructor(
         private habitService: HabitService,
@@ -24,7 +26,13 @@ export class HabitComponent implements OnInit {
     ) {
         this.createForm = this.fb.group({
             name: ['', Validators.required],
-            description: ['']
+            description: ['', Validators.required]  // Made required as per Habit entity
+        });
+
+        this.logForm = this.fb.group({
+            date: [new Date().toISOString().split('T')[0], Validators.required],
+            completed: [true],
+            notes: ['']
         });
     }
 
@@ -63,6 +71,56 @@ export class HabitComponent implements OnInit {
                     this.loadHabits();
                     this.showCreateForm = false;
                     this.createForm.reset();
+                    this.isLoading = false;
+                },
+                error: (error) => {
+                    this.error = error.message;
+                    this.isLoading = false;
+                }
+            });
+        }
+    }
+
+    toggleLogForm(habit: any) {
+        if (this.selectedHabit?.id === habit.id) {
+            this.selectedHabit = null;
+        } else {
+            this.selectedHabit = habit;
+            this.logForm.reset({
+                date: new Date().toISOString().split('T')[0],
+                completed: true,
+                notes: ''
+            });
+        }
+    }
+
+    cancelLog() {
+        this.selectedHabit = null;
+        this.logForm.reset({
+            date: new Date().toISOString().split('T')[0],
+            completed: true,
+            notes: ''
+        });
+    }
+
+    logCompletion(habitId: number) {
+        if (this.logForm.valid) {
+            this.isLoading = true;
+            const formValue = this.logForm.value;
+            
+            this.habitService.logHabitCompletion(
+                habitId,
+                formValue.date,
+                formValue.completed,
+                formValue.notes
+            ).subscribe({
+                next: () => {
+                    this.selectedHabit = null;
+                    this.logForm.reset({
+                        date: new Date().toISOString().split('T')[0],
+                        completed: true,
+                        notes: ''
+                    });
                     this.isLoading = false;
                 },
                 error: (error) => {
