@@ -7,5 +7,7 @@ export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   { path: 'home', component: HomeComponent },
+  { path: 'dashboard/:id', loadComponent: () => 
+    import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
   { path: '', redirectTo: '/login', pathMatch: 'full' }
 ];

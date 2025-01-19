@@ -18,4 +18,16 @@ export class AuthService {
   register(userData: {email: string, password: string}): Observable<any> {
     return this.http.post(`${this.baseUrl}/register`, userData);
   }
+
+  getUserId(): string | null {
+    const token = localStorage.getItem('token');
+    if (!token) return null;
+    // Assuming the token is a JWT and contains the user ID in the payload
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.userId;
+    } catch {
+      return null;
+    }
+  }
 }

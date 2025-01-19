@@ -1,48 +1,39 @@
-<div class="flex justify-content-center align-items-center min-h-screen">
-  <p-card header="Register" styleClass="w-30rem shadow-2">
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="flex flex-column gap-3">
-      <div class="flex flex-column gap-2">
-        <label htmlFor="email">Email</label>
-        <input pInputText 
-               id="email" 
-               formControlName="email" 
-               placeholder="Enter your email"
-               [ngClass]="{'ng-invalid ng-dirty': registerForm.get('email')?.invalid && registerForm.get('email')?.touched}"
-        />
-        <small class="p-error" *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
-          Please enter a valid email address
-        </small>
-      </div>
+<div>
+  <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+    <div>
+      <label for="email">Email</label>
+      <input 
+        id="email"
+        type="email" 
+        formControlName="email"
+        placeholder="Enter your email"
+        autocomplete="email"
+      >
+      <small *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+        Please enter a valid email
+      </small>
+    </div>
 
-      <div class="flex flex-column gap-2">
-        <label htmlFor="password">Password</label>
-        <p-password 
-          id="password" 
-          formControlName="password"
-          [feedback]="true"
-          [toggleMask]="true"
-          placeholder="Enter your password"
-          styleClass="w-full"
-          [ngClass]="{'ng-invalid ng-dirty': registerForm.get('password')?.invalid && registerForm.get('password')?.touched}"
-        ></p-password>
-        <small class="p-error" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-          Password is required
-        </small>
-      </div>
+    <div>
+      <label for="password">Password</label>
+      <input 
+        id="password"
+        type="password" 
+        formControlName="password"
+        placeholder="Enter your password"
+        autocomplete="new-password"
+      >
+      <small *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+        Password is required
+      </small>
+    </div>
 
-      <div class="error" *ngIf="error">{{ error }}</div>
+    <div *ngIf="error">{{ error }}</div>
 
-      <p-button 
-        type="submit" 
-        label="Register" 
-        [disabled]="!registerForm.valid"
-        styleClass="w-full">
-      </p-button>
+    <button type="submit" [disabled]="!registerForm.valid">Register</button>
 
-      <div class="text-center">
-        Already have an account? 
-        <a routerLink="/login" class="text-primary hover:underline">Login</a>
-      </div>
-    </form>
-  </p-card>
+    <div>
+      <a routerLink="/login">Login</a>
+    </div>
+  </form>
 </div>

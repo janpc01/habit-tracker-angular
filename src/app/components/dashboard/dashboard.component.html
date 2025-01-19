@@ -1,0 +1,14 @@
+<div class="dashboard-container">
+    <div *ngIf="isLoading" class="loading">
+        Loading dashboard...
+    </div>
+
+    <div *ngIf="error" class="error">
+        {{ error }}
+    </div>
+
+    <div *ngIf="!isLoading && !error" class="dashboard-content">
+        <h1>Dashboard {{ dashboardId }}</h1>
+        <!-- Add dashboard content here -->
+    </div>
+</div>

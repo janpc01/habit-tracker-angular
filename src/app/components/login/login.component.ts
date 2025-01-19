@@ -3,12 +3,6 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { ButtonModule } from 'primeng/button';
-import { InputTextModule } from 'primeng/inputtext';
-import { PasswordModule } from 'primeng/password';
-import { CardModule } from 'primeng/card';
-import { MessagesModule } from 'primeng/messages';
-import { MessageService } from 'primeng/api';
 
 @Component({
     selector: 'app-login',
@@ -16,14 +10,8 @@ import { MessageService } from 'primeng/api';
     imports: [
         CommonModule, 
         ReactiveFormsModule, 
-        RouterLink, 
-        ButtonModule,
-        InputTextModule,
-        PasswordModule,
-        CardModule,
-        MessagesModule
+        RouterLink
     ],
-    providers: [MessageService],
     templateUrl: './login.component.html',
     styleUrls: ['./login.component.css']
 })

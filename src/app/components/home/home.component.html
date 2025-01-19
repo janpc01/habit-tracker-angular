@@ -1,4 +1,26 @@
 <div class="home-container">
     <h1>Welcome to Tempo</h1>
-    <!-- Add more content here -->
-  </div>
+    <button 
+        class="create-dashboard-btn" 
+        (click)="createDashboard()" 
+        [disabled]="isLoading">
+        {{ isLoading ? 'Creating...' : 'Create Dashboard' }}
+    </button>
+
+    <div *ngIf="error" class="error">{{ error }}</div>
+
+    <div *ngIf="isLoading" class="loading">Loading dashboards...</div>
+
+    <div *ngIf="!isLoading && dashboards.length === 0" class="no-dashboards">
+        No dashboards found. Create one to get started!
+    </div>
+
+    <div *ngIf="!isLoading && dashboards.length > 0" class="dashboards-list">
+        <h2>Your Dashboards</h2>
+        <div *ngFor="let dashboard of dashboards" class="dashboard-item">
+            <a [routerLink]="['/dashboard', dashboard.id]">
+                {{ dashboard.name || 'Untitled Dashboard' }}
+            </a>
+        </div>
+    </div>
+</div>
