@@ -49,12 +49,20 @@
         <div *ngFor="let habit of habits" class="habit-item">
             <div class="habit-header">
                 <h3>{{ habit.name }}</h3>
-                <button 
-                    class="log-btn" 
-                    (click)="toggleLogForm(habit)"
-                    [disabled]="isLoading">
-                    {{ selectedHabit?.id === habit.id ? 'Cancel' : 'Log' }}
-                </button>
+                <div class="habit-actions">
+                    <button 
+                        class="delete-btn" 
+                        (click)="deleteHabit(habit.id)"
+                        [disabled]="isLoading">
+                        Delete
+                    </button>
+                    <button 
+                        class="log-btn" 
+                        (click)="toggleLogForm(habit)"
+                        [disabled]="isLoading">
+                        {{ selectedHabit?.id === habit.id ? 'Cancel' : 'Log' }}
+                    </button>
+                </div>
             </div>
             <p *ngIf="habit.description">{{ habit.description }}</p>
 

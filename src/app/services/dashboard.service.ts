@@ -38,4 +38,11 @@ export class DashboardService {
     }
     return this.http.get(`${this.baseUrl}/user/${userId}`, { headers: this.getHeaders() });
   }
+
+  deleteDashboard(dashboardId: string): Observable<any> {
+    return this.http.delete(
+      `${this.baseUrl}/${dashboardId}`,
+      { headers: this.getHeaders() }
+    );
+  }
 }

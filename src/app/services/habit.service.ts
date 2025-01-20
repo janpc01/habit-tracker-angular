@@ -67,4 +67,11 @@ export class HabitService {
             { headers: this.getHeaders() }
         );
     }
+
+    deleteHabit(habitId: number): Observable<any> {
+        return this.http.delete(
+            `${this.habitsUrl}/${habitId}`,
+            { headers: this.getHeaders() }
+        );
+    }
 }

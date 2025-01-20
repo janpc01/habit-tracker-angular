@@ -130,4 +130,20 @@ export class HabitComponent implements OnInit {
             });
         }
     }
+
+    deleteHabit(habitId: number) {
+        if (confirm('Are you sure you want to delete this habit? This action cannot be undone.')) {
+            this.isLoading = true;
+            this.habitService.deleteHabit(habitId).subscribe({
+                next: () => {
+                    this.loadHabits();
+                    this.isLoading = false;
+                },
+                error: (error) => {
+                    this.error = error.message;
+                    this.isLoading = false;
+                }
+            });
+        }
+    }
 }

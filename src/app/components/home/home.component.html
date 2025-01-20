@@ -40,9 +40,17 @@
     <div *ngIf="!isLoading && dashboards.length > 0" class="dashboards-list">
         <h2>Your Dashboards</h2>
         <div *ngFor="let dashboard of dashboards" class="dashboard-item">
-            <a [routerLink]="['/dashboard', dashboard.id]">
-                {{ dashboard.name || 'Untitled Dashboard' }}
-            </a>
+            <div class="dashboard-content">
+                <a [routerLink]="['/dashboard', dashboard.id]">
+                    {{ dashboard.name || 'Untitled Dashboard' }}
+                </a>
+                <button 
+                    class="delete-btn" 
+                    (click)="deleteDashboard(dashboard.id, $event)"
+                    [disabled]="isLoading">
+                    Delete
+                </button>
+            </div>
         </div>
     </div>
 </div>

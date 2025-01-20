@@ -74,4 +74,20 @@ export class HomeComponent implements OnInit {
             });
         }
     }
+
+    deleteDashboard(dashboardId: string, event: Event) {
+        event.preventDefault(); // Prevent navigation
+        if (confirm('Are you sure you want to delete this dashboard? This will also delete all habits associated with it.')) {
+            this.isLoading = true;
+            this.dashboardService.deleteDashboard(dashboardId).subscribe({
+                next: () => {
+                    this.loadDashboards();
+                },
+                error: (error) => {
+                    this.error = error.message;
+                    this.isLoading = false;
+                }
+            });
+        }
+    }
 }
