@@ -10,6 +10,8 @@ interface SocialMediaLink {
   width?: number;
   height?: number;
   embedUrl?: SafeResourceUrl;
+  x?: number;
+  y?: number;
 }
 
 @Component({
@@ -28,6 +30,14 @@ export class SocialMediaLinkComponent implements OnInit {
   createForm: FormGroup;
   private resizeObserver: ResizeObserver;
   private resizeTimeout: any;
+  private dragData = {
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startTop: 0,
+    startLeft: 0,
+    currentLinkId: ''
+  };
 
   constructor(
     private socialMediaLinkService: SocialMediaLinkService,
@@ -81,6 +91,12 @@ export class SocialMediaLinkComponent implements OnInit {
   }
 
   private updateDimensions(linkId: string, width: number, height: number) {
+    // Validate dimensions before sending
+    if (width <= 0 || height <= 0) {
+      console.warn('Invalid dimensions detected:', { width, height });
+      return;
+    }
+
     console.log('Sending dimensions update:', {
       linkId,
       width,
@@ -93,7 +109,6 @@ export class SocialMediaLinkComponent implements OnInit {
       .subscribe({
         next: (updatedLink) => {
           console.log('Successfully updated dimensions');
-          // Update the link in the local array
           const linkIndex = this.links.findIndex(l => l.id === linkId);
           if (linkIndex !== -1) {
             this.links[linkIndex] = {
@@ -164,10 +179,11 @@ export class SocialMediaLinkComponent implements OnInit {
             url: link.url || '',
             width: link.width,
             height: link.height,
+            x: link.x,
+            y: link.y,
             embedUrl: this.getEmbedUrl(link.url)
           }));
           this.isLoading = false;
-          // Re-setup observers after loading new links
           setTimeout(() => this.setupResizeObservers(), 0);
         },
         error: (error) => {
@@ -246,5 +262,90 @@ export class SocialMediaLinkComponent implements OnInit {
       return Math.round(container.clientWidth);
     }
     return 550; // max-width from CSS
+  }
+
+  onDragStart(event: MouseEvent, link: SocialMediaLink) {
+    // Only proceed if the drag started from the handle
+    if (!(event.target as HTMLElement).classList.contains('drag-handle')) {
+      return;
+    }
+
+    const container = (event.target as HTMLElement).closest('.embed-container') as HTMLElement;
+    if (!container) return;
+
+    this.dragData = {
+      isDragging: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      startTop: container.offsetTop,
+      startLeft: container.offsetLeft,
+      currentLinkId: link.id
+    };
+
+    event.preventDefault();
+    document.addEventListener('mousemove', this.onDragMove.bind(this));
+    document.addEventListener('mouseup', this.onDragEnd.bind(this));
+  }
+
+  private onDragMove(event: MouseEvent) {
+    if (!this.dragData.isDragging) return;
+
+    const deltaX = event.clientX - this.dragData.startX;
+    const deltaY = event.clientY - this.dragData.startY;
+
+    const container = document.querySelector(`[data-link-id="${this.dragData.currentLinkId}"]`) as HTMLElement;
+    if (container) {
+      const newTop = this.dragData.startTop + deltaY;
+      const newLeft = this.dragData.startLeft + deltaX;
+      
+      container.style.top = `${newTop}px`;
+      container.style.left = `${newLeft}px`;
+    }
+  }
+
+  private updatePosition(linkId: string, top: number, left: number) {
+    console.log('Sending position update:', {
+      linkId,
+      x: left,  // left maps to x
+      y: top    // top maps to y
+    });
+    
+    this.socialMediaLinkService.updateLinkPosition(linkId, left, top)
+      .subscribe({
+        next: (updatedLink) => {
+          console.log('Successfully updated position');
+          const linkIndex = this.links.findIndex(l => l.id === linkId);
+          if (linkIndex !== -1) {
+            this.links[linkIndex] = {
+              ...this.links[linkIndex],
+              x: updatedLink.x,
+              y: updatedLink.y
+            };
+          }
+        },
+        error: (error) => {
+          console.error('Failed to update position:', {
+            error,
+            status: error.status,
+            message: error.message,
+            body: error.error
+          });
+        }
+      });
+  }
+
+  private onDragEnd() {
+    if (!this.dragData.isDragging) return;
+
+    const container = document.querySelector(`[data-link-id="${this.dragData.currentLinkId}"]`) as HTMLElement;
+    if (container) {
+      const top = container.offsetTop;
+      const left = container.offsetLeft;
+      this.updatePosition(this.dragData.currentLinkId, top, left);
+    }
+
+    this.dragData.isDragging = false;
+    document.removeEventListener('mousemove', this.onDragMove.bind(this));
+    document.removeEventListener('mouseup', this.onDragEnd.bind(this));
   }
 }

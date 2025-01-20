@@ -52,13 +52,20 @@
            [class]="'embed-container ' + getEmbedType(link.url)"
            [attr.data-link-id]="link.id"
            [style.width.px]="link.width || getDefaultWidth()"
-           [style.height.px]="link.height || 400">
-        <iframe
-          [src]="link.embedUrl"
-          frameborder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowfullscreen>
-        </iframe>
+           [style.height.px]="link.height || 400"
+           [style.top.px]="link.y || 0"
+           [style.left.px]="link.x || 0">
+        <div class="drag-handle" (mousedown)="onDragStart($event, link)">
+          ⋮⋮ Drag to move
+        </div>
+        <div class="embed-content">
+          <iframe
+            [src]="link.embedUrl"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
       </div>
     </div>
   </div>

@@ -9,6 +9,8 @@ interface SocialMediaLink {
   url: string;
   width?: number;
   height?: number;
+  x?: number;
+  y?: number;
 }
 
 @Injectable({
@@ -103,6 +105,28 @@ export class SocialMediaLinkService {
       tap(response => console.log('Dimensions updated successfully:', response)),
       catchError((error: HttpErrorResponse) => {
         console.error('Update dimensions error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  updateLinkPosition(linkId: string, x: number, y: number): Observable<SocialMediaLink> {
+    console.log('Updating position:', { linkId, x, y });
+    
+    return this.http.patch<SocialMediaLink>(
+      `${this.baseUrl}/${linkId}/position`,
+      null,
+      { 
+        headers: this.getHeaders(),
+        params: {
+          x: Math.round(x).toString(),
+          y: Math.round(y).toString()
+        }
+      }
+    ).pipe(
+      tap(response => console.log('Position updated successfully:', response)),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Update position error:', error);
         return throwError(() => error);
       })
     );
