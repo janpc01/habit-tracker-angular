@@ -44,6 +44,7 @@ export class SocialMediaLinkComponent implements OnInit {
   private getEmbedUrl(url: string | undefined): SafeResourceUrl | undefined {
     if (!url) return undefined;
     
+    // YouTube handling
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       const videoId = this.getYouTubeVideoId(url);
       if (videoId) {
@@ -51,6 +52,16 @@ export class SocialMediaLinkComponent implements OnInit {
         return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
       }
     }
+    
+    // Instagram handling
+    if (url.includes('instagram.com')) {
+      const postId = this.getInstagramPostId(url);
+      if (postId) {
+        const embedUrl = `https://www.instagram.com/p/${postId}/embed`;
+        return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+      }
+    }
+    
     return undefined;
   }
 
@@ -58,6 +69,13 @@ export class SocialMediaLinkComponent implements OnInit {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  private getInstagramPostId(url: string): string | null {
+    // Handle both full URLs and shortened ones
+    const regExp = /instagram\.com\/p\/([^/?#&]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : null;
   }
 
   loadLinks() {
@@ -132,5 +150,16 @@ export class SocialMediaLinkComponent implements OnInit {
         }
       });
     }
+  }
+
+  getEmbedType(url: string): string {
+    if (!url) return '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      return 'youtube';
+    }
+    if (url.includes('instagram.com')) {
+      return 'instagram';
+    }
+    return '';
   }
 }
