@@ -48,7 +48,11 @@
           Delete
         </button>
       </div>
-      <div *ngIf="link.embedUrl" [class]="'embed-container ' + getEmbedType(link.url)">
+      <div *ngIf="link.embedUrl" 
+           [class]="'embed-container ' + getEmbedType(link.url)"
+           [attr.data-link-id]="link.id"
+           [style.width.px]="link.width || getDefaultWidth()"
+           [style.height.px]="link.height || 400">
         <iframe
           [src]="link.embedUrl"
           frameborder="0"

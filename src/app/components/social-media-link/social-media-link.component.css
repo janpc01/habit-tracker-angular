@@ -1,42 +1,35 @@
 .embed-container {
   position: relative;
-  width: 60%;  /* Reduced from 100% */
-  max-width: 550px;  /* Maximum width */
-  margin: 1rem auto;  /* Center the container */
+  width: 60%;
+  max-width: 550px;
+  margin: 1rem auto;
+  border: 1px solid #ddd;
+  background: white;
+  resize: both;
+  overflow: auto;
+  min-height: 300px;
+  min-width: 280px;
 }
 
-/* YouTube specific aspect ratio */
 .embed-container.youtube {
-  padding-bottom: 33.75%;  /* 56.25% * 0.6 to maintain 16:9 ratio at 60% width */
+  min-width: 280px;
 }
 
-/* Instagram specific sizing */
 .embed-container.instagram {
-  padding-bottom: 72%;  /* 120% * 0.6 to maintain aspect ratio at 60% width */
   min-width: 326px;
-  max-width: 400px;  /* Smaller max-width for Instagram */
 }
 
 .embed-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
   border: none;
 }
 
-/* Add responsive adjustments */
 @media (max-width: 768px) {
   .embed-container {
     width: 100%;
-  }
-  
-  .embed-container.youtube {
-    padding-bottom: 56.25%;
-  }
-  
-  .embed-container.instagram {
-    padding-bottom: 120%;
+    resize: vertical;
   }
 }
+
+

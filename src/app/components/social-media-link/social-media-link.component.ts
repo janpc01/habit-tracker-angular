@@ -7,6 +7,8 @@ import { SocialMediaLinkService } from '../../services/social-media-link.service
 interface SocialMediaLink {
   id: string;
   url: string;
+  width?: number;
+  height?: number;
   embedUrl?: SafeResourceUrl;
 }
 
@@ -24,6 +26,8 @@ export class SocialMediaLinkComponent implements OnInit {
   error = '';
   showCreateForm = false;
   createForm: FormGroup;
+  private resizeObserver: ResizeObserver;
+  private resizeTimeout: any;
 
   constructor(
     private socialMediaLinkService: SocialMediaLinkService,
@@ -33,12 +37,81 @@ export class SocialMediaLinkComponent implements OnInit {
     this.createForm = this.fb.group({
       url: ['', [Validators.required, Validators.pattern('https?://.+')]]
     });
+    this.resizeObserver = new ResizeObserver(this.onResize.bind(this));
   }
 
   ngOnInit() {
     if (this.boardId) {
       this.loadLinks();
     }
+  }
+
+  ngAfterViewInit() {
+    this.setupResizeObservers();
+  }
+
+  private setupResizeObservers() {
+    const containers = document.querySelectorAll('.embed-container');
+    containers.forEach(container => {
+      this.resizeObserver.observe(container);
+    });
+  }
+
+  private onResize(entries: ResizeObserverEntry[]) {
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+
+    this.resizeTimeout = setTimeout(() => {
+      entries.forEach(entry => {
+        const container = entry.target as HTMLElement;
+        const linkId = container.getAttribute('data-link-id');
+        console.log('Resize detected:', {
+          linkId,
+          width: Math.round(entry.contentRect.width),
+          height: Math.round(entry.contentRect.height)
+        });
+        if (linkId) {
+          const width = Math.round(entry.contentRect.width);
+          const height = Math.round(entry.contentRect.height);
+          this.updateDimensions(linkId, width, height);
+        }
+      });
+    }, 500);
+  }
+
+  private updateDimensions(linkId: string, width: number, height: number) {
+    console.log('Sending dimensions update:', {
+      linkId,
+      width,
+      height,
+      widthType: typeof width,
+      heightType: typeof height
+    });
+    
+    this.socialMediaLinkService.updateLinkDimensions(linkId, width, height)
+      .subscribe({
+        next: (updatedLink) => {
+          console.log('Successfully updated dimensions');
+          // Update the link in the local array
+          const linkIndex = this.links.findIndex(l => l.id === linkId);
+          if (linkIndex !== -1) {
+            this.links[linkIndex] = {
+              ...this.links[linkIndex],
+              width: updatedLink.width,
+              height: updatedLink.height
+            };
+          }
+        },
+        error: (error) => {
+          console.error('Failed to update dimensions:', {
+            error,
+            status: error.status,
+            message: error.message,
+            body: error.error
+          });
+        }
+      });
   }
 
   private getEmbedUrl(url: string | undefined): SafeResourceUrl | undefined {
@@ -89,9 +162,13 @@ export class SocialMediaLinkComponent implements OnInit {
           this.links = (links || []).map(link => ({
             id: link.id || '',
             url: link.url || '',
+            width: link.width,
+            height: link.height,
             embedUrl: this.getEmbedUrl(link.url)
           }));
           this.isLoading = false;
+          // Re-setup observers after loading new links
+          setTimeout(() => this.setupResizeObservers(), 0);
         },
         error: (error) => {
           console.error('Load links error:', error);
@@ -161,5 +238,13 @@ export class SocialMediaLinkComponent implements OnInit {
       return 'instagram';
     }
     return '';
+  }
+
+  public getDefaultWidth(): number {
+    const container = document.querySelector('.embed-container');
+    if (container) {
+      return Math.round(container.clientWidth);
+    }
+    return 550; // max-width from CSS
   }
 }

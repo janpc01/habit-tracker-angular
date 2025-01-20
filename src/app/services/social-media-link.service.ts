@@ -7,6 +7,8 @@ import { environment } from '../../environments/environment';
 interface SocialMediaLink {
   id: string;
   url: string;
+  width?: number;
+  height?: number;
 }
 
 @Injectable({
@@ -81,6 +83,28 @@ export class SocialMediaLinkService {
     return this.http.delete<void>(
       `${this.baseUrl}/${linkId}`,
       { headers: this.getHeaders() }
+    );
+  }
+
+  updateLinkDimensions(linkId: string, width: number, height: number): Observable<SocialMediaLink> {
+    console.log('Updating dimensions:', { linkId, width, height });
+    
+    return this.http.patch<SocialMediaLink>(
+      `${this.baseUrl}/${linkId}/dimensions`,
+      null,
+      { 
+        headers: this.getHeaders(),
+        params: {
+          width: Math.round(width).toString(),
+          height: Math.round(height).toString()
+        }
+      }
+    ).pipe(
+      tap(response => console.log('Dimensions updated successfully:', response)),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Update dimensions error:', error);
+        return throwError(() => error);
+      })
     );
   }
 }
