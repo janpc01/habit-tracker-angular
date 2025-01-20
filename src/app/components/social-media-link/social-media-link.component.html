@@ -1,0 +1,61 @@
+<div class="social-media-link-container">
+  <div class="header">
+    <h2>Social Media Links</h2>
+    <button 
+      class="create-link-btn" 
+      (click)="toggleCreateForm()" 
+      [disabled]="isLoading">
+      {{ showCreateForm ? 'Cancel' : 'Add Link' }}
+    </button>
+  </div>
+
+  <form *ngIf="showCreateForm" [formGroup]="createForm" (ngSubmit)="createLink()" class="create-form">
+    <div class="form-group">
+      <label for="url">URL</label>
+      <input 
+        id="url"
+        type="url" 
+        formControlName="url"
+        placeholder="Enter URL (e.g., https://twitter.com/...)"
+      >
+      <small *ngIf="createForm.get('url')?.invalid && createForm.get('url')?.touched">
+        Please enter a valid URL starting with http:// or https://
+      </small>
+    </div>
+    <button type="submit" [disabled]="!createForm.valid || isLoading">
+      {{ isLoading ? 'Adding...' : 'Add Link' }}
+    </button>
+  </form>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="isLoading" class="loading">Loading links...</div>
+
+  <div *ngIf="!isLoading && links.length === 0" class="no-links">
+    No social media links found. Add one to get started!
+  </div>
+
+  <div *ngIf="!isLoading && links.length > 0" class="links-list">
+    <div *ngFor="let link of links" class="link-item">
+      <div class="link-content">
+        <a [href]="link.url" target="_blank" rel="noopener noreferrer">
+          {{ link.url }}
+        </a>
+        <button 
+          class="delete-btn" 
+          (click)="deleteLink(link.id)"
+          [disabled]="isLoading">
+          Delete
+        </button>
+      </div>
+      <div *ngIf="link.embedUrl" class="embed-container">
+        <iframe
+          [src]="link.embedUrl"
+          frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </div>
+</div>

@@ -9,5 +9,7 @@ export const routes: Routes = [
   { path: 'home', component: HomeComponent },
   { path: 'dashboard/:id', loadComponent: () => 
     import('./components/dashboard/dashboard.component').then(m => m.DashboardComponent) },
-  { path: '', redirectTo: '/login', pathMatch: 'full' }
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: 'boards/:id', loadComponent: () => 
+    import('./components/board/board.component').then(m => m.BoardComponent) }
 ];
