@@ -36,7 +36,9 @@ export class SocialMediaLinkComponent implements OnInit {
     startY: 0,
     startTop: 0,
     startLeft: 0,
-    currentLinkId: ''
+    currentLinkId: '',
+    initialWidth: 0,
+    initialHeight: 0
   };
 
   constructor(
@@ -61,13 +63,39 @@ export class SocialMediaLinkComponent implements OnInit {
   }
 
   private setupResizeObservers() {
+    // First disconnect any existing observers
+    this.resizeObserver.disconnect();
+    
     const containers = document.querySelectorAll('.embed-container');
     containers.forEach(container => {
+      // Store current dimensions before observing
+      const linkId = container.getAttribute('data-link-id');
+      if (linkId) {
+        const link = this.links.find(l => l.id === linkId);
+        if (link) {
+          container.setAttribute('data-original-width', (link.width || this.getDefaultWidth()).toString());
+          container.setAttribute('data-original-height', (link.height || 400).toString());
+        }
+      }
       this.resizeObserver.observe(container);
     });
   }
 
   private onResize(entries: ResizeObserverEntry[]) {
+    if (this.dragData.isDragging) {
+      entries.forEach(entry => {
+        const container = entry.target as HTMLElement;
+        const originalWidth = container.getAttribute('data-original-width');
+        const originalHeight = container.getAttribute('data-original-height');
+        
+        if (originalWidth && originalHeight) {
+          container.style.width = `${originalWidth}px`;
+          container.style.height = `${originalHeight}px`;
+        }
+      });
+      return;
+    }
+
     if (this.resizeTimeout) {
       clearTimeout(this.resizeTimeout);
     }
@@ -76,15 +104,19 @@ export class SocialMediaLinkComponent implements OnInit {
       entries.forEach(entry => {
         const container = entry.target as HTMLElement;
         const linkId = container.getAttribute('data-link-id');
-        console.log('Resize detected:', {
-          linkId,
-          width: Math.round(entry.contentRect.width),
-          height: Math.round(entry.contentRect.height)
-        });
         if (linkId) {
           const width = Math.round(entry.contentRect.width);
           const height = Math.round(entry.contentRect.height);
-          this.updateDimensions(linkId, width, height);
+          
+          // Only update if dimensions actually changed
+          const originalWidth = parseInt(container.getAttribute('data-original-width') || '0');
+          const originalHeight = parseInt(container.getAttribute('data-original-height') || '0');
+          
+          if (width !== originalWidth || height !== originalHeight) {
+            this.updateDimensions(linkId, width, height);
+            container.setAttribute('data-original-width', width.toString());
+            container.setAttribute('data-original-height', height.toString());
+          }
         }
       });
     }, 500);
@@ -265,7 +297,6 @@ export class SocialMediaLinkComponent implements OnInit {
   }
 
   onDragStart(event: MouseEvent, link: SocialMediaLink) {
-    // Only proceed if the drag started from the handle
     if (!(event.target as HTMLElement).classList.contains('drag-handle')) {
       return;
     }
@@ -273,13 +304,18 @@ export class SocialMediaLinkComponent implements OnInit {
     const container = (event.target as HTMLElement).closest('.embed-container') as HTMLElement;
     if (!container) return;
 
+    // Disconnect ResizeObserver during drag
+    this.resizeObserver.disconnect();
+
     this.dragData = {
       isDragging: true,
       startX: event.clientX,
       startY: event.clientY,
       startTop: container.offsetTop,
       startLeft: container.offsetLeft,
-      currentLinkId: link.id
+      currentLinkId: link.id,
+      initialWidth: link.width || this.getDefaultWidth(),
+      initialHeight: link.height || 400
     };
 
     event.preventDefault();
@@ -341,11 +377,24 @@ export class SocialMediaLinkComponent implements OnInit {
     if (container) {
       const top = container.offsetTop;
       const left = container.offsetLeft;
+      
       this.updatePosition(this.dragData.currentLinkId, top, left);
     }
 
     this.dragData.isDragging = false;
     document.removeEventListener('mousemove', this.onDragMove.bind(this));
     document.removeEventListener('mouseup', this.onDragEnd.bind(this));
+
+    // Reconnect ResizeObserver after drag
+    this.setupResizeObservers();
+  }
+
+  ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
   }
 }

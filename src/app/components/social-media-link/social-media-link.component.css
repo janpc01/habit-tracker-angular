@@ -14,7 +14,7 @@
   left: 0;
 }
 
-.drag-handle {
+.embed-header {
   position: absolute;
   top: 0;
   left: 0;
@@ -22,10 +22,35 @@
   height: 25px;
   background: #f5f5f5;
   border-bottom: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.drag-handle {
   cursor: move;
   display: flex;
   align-items: center;
-  padding: 0 10px;
+}
+
+.delete-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.delete-btn:hover {
+  background: #cc0000;
+}
+
+.delete-btn:disabled {
+  background: #ffaaaa;
+  cursor: not-allowed;
 }
 
 .embed-content {

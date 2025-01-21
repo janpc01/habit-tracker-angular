@@ -37,17 +37,6 @@
 
   <div *ngIf="!isLoading && links.length > 0" class="links-list">
     <div *ngFor="let link of links" class="link-item">
-      <div class="link-content">
-        <a [href]="link.url" target="_blank" rel="noopener noreferrer">
-          {{ link.url }}
-        </a>
-        <button 
-          class="delete-btn" 
-          (click)="deleteLink(link.id)"
-          [disabled]="isLoading">
-          Delete
-        </button>
-      </div>
       <div *ngIf="link.embedUrl" 
            [class]="'embed-container ' + getEmbedType(link.url)"
            [attr.data-link-id]="link.id"
@@ -55,8 +44,16 @@
            [style.height.px]="link.height || 400"
            [style.top.px]="link.y || 0"
            [style.left.px]="link.x || 0">
-        <div class="drag-handle" (mousedown)="onDragStart($event, link)">
-          ⋮⋮ Drag to move
+        <div class="embed-header">
+          <div class="drag-handle" (mousedown)="onDragStart($event, link)">
+            ⋮⋮ Drag to move
+          </div>
+          <button 
+            class="delete-btn" 
+            (click)="deleteLink(link.id)"
+            [disabled]="isLoading">
+            Delete
+          </button>
         </div>
         <div class="embed-content">
           <iframe
