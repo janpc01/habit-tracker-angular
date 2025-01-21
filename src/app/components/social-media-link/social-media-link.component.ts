@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SocialMediaLinkService } from '../../services/social-media-link.service';
+import { firstValueFrom } from 'rxjs';
 
 interface SocialMediaLink {
   id: string;
@@ -12,6 +13,15 @@ interface SocialMediaLink {
   embedUrl?: SafeResourceUrl;
   x?: number;
   y?: number;
+}
+
+interface PendingChanges {
+  [linkId: string]: {
+    width?: number;
+    height?: number;
+    x?: number;
+    y?: number;
+  };
 }
 
 @Component({
@@ -40,6 +50,8 @@ export class SocialMediaLinkComponent implements OnInit {
     initialWidth: 0,
     initialHeight: 0
   };
+  isEditMode = false;
+  pendingChanges: PendingChanges = {};
 
   constructor(
     private socialMediaLinkService: SocialMediaLinkService,
@@ -82,17 +94,8 @@ export class SocialMediaLinkComponent implements OnInit {
   }
 
   private onResize(entries: ResizeObserverEntry[]) {
-    if (this.dragData.isDragging) {
-      entries.forEach(entry => {
-        const container = entry.target as HTMLElement;
-        const originalWidth = container.getAttribute('data-original-width');
-        const originalHeight = container.getAttribute('data-original-height');
-        
-        if (originalWidth && originalHeight) {
-          container.style.width = `${originalWidth}px`;
-          container.style.height = `${originalHeight}px`;
-        }
-      });
+    // If not in edit mode or dragging, ignore resize events
+    if (!this.isEditMode || this.dragData.isDragging) {
       return;
     }
 
@@ -108,15 +111,10 @@ export class SocialMediaLinkComponent implements OnInit {
           const width = Math.round(entry.contentRect.width);
           const height = Math.round(entry.contentRect.height);
           
-          // Only update if dimensions actually changed
-          const originalWidth = parseInt(container.getAttribute('data-original-width') || '0');
-          const originalHeight = parseInt(container.getAttribute('data-original-height') || '0');
+          this.trackChange(linkId, { width, height });
           
-          if (width !== originalWidth || height !== originalHeight) {
-            this.updateDimensions(linkId, width, height);
-            container.setAttribute('data-original-width', width.toString());
-            container.setAttribute('data-original-height', height.toString());
-          }
+          container.setAttribute('data-original-width', width.toString());
+          container.setAttribute('data-original-height', height.toString());
         }
       });
     }, 500);
@@ -378,15 +376,108 @@ export class SocialMediaLinkComponent implements OnInit {
       const top = container.offsetTop;
       const left = container.offsetLeft;
       
-      this.updatePosition(this.dragData.currentLinkId, top, left);
+      if (this.isEditMode) {
+        this.trackChange(this.dragData.currentLinkId, { x: left, y: top });
+      }
     }
 
     this.dragData.isDragging = false;
     document.removeEventListener('mousemove', this.onDragMove.bind(this));
     document.removeEventListener('mouseup', this.onDragEnd.bind(this));
+  }
 
-    // Reconnect ResizeObserver after drag
-    this.setupResizeObservers();
+  toggleEditMode() {
+    if (this.isEditMode) {
+      this.saveChanges();
+    } else {
+      this.isEditMode = true;
+      this.pendingChanges = {};
+    }
+  }
+
+  private trackChange(linkId: string, change: { width?: number; height?: number; x?: number; y?: number }) {
+    if (!this.pendingChanges[linkId]) {
+      this.pendingChanges[linkId] = {};
+    }
+    this.pendingChanges[linkId] = { ...this.pendingChanges[linkId], ...change };
+
+    // Update local state immediately
+    const linkIndex = this.links.findIndex(l => l.id === linkId);
+    if (linkIndex !== -1) {
+      this.links[linkIndex] = {
+        ...this.links[linkIndex],
+        ...change
+      };
+    }
+  }
+
+  private async saveChanges() {
+    if (Object.keys(this.pendingChanges).length === 0) {
+      this.isEditMode = false;
+      return;
+    }
+
+    this.isLoading = true;
+    try {
+      // Process each link's changes
+      const savePromises = Object.entries(this.pendingChanges).map(([linkId, changes]) => {
+        const promises = [];
+        
+        // Get the current dimensions from the DOM
+        const container = document.querySelector(`[data-link-id="${linkId}"]`) as HTMLElement;
+        if (container) {
+          const currentWidth = container.offsetWidth;
+          const currentHeight = container.offsetHeight;
+          const currentTop = container.offsetTop;
+          const currentLeft = container.offsetLeft;
+
+          // Always update dimensions with current values
+          promises.push(
+            firstValueFrom(
+              this.socialMediaLinkService.updateLinkDimensions(
+                linkId,
+                currentWidth,
+                currentHeight
+              )
+            )
+          );
+
+          // Always update position with current values
+          promises.push(
+            firstValueFrom(
+              this.socialMediaLinkService.updateLinkPosition(
+                linkId,
+                currentLeft,
+                currentTop
+              )
+            )
+          );
+
+          // Update local state
+          const linkIndex = this.links.findIndex(l => l.id === linkId);
+          if (linkIndex !== -1) {
+            this.links[linkIndex] = {
+              ...this.links[linkIndex],
+              width: currentWidth,
+              height: currentHeight,
+              x: currentLeft,
+              y: currentTop
+            };
+          }
+        }
+        
+        return Promise.all(promises);
+      });
+
+      await Promise.all(savePromises);
+      this.pendingChanges = {};
+      this.isEditMode = false;
+    } catch (error) {
+      console.error('Error saving changes:', error);
+      this.error = 'Failed to save changes';
+    } finally {
+      this.isLoading = false;
+    }
   }
 
   ngOnDestroy() {
