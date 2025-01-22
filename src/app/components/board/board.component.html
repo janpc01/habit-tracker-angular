@@ -2,13 +2,58 @@
   <div class="header">
     <button class="back-btn" routerLink="/home">Back to Home</button>
     <h2>{{ board?.name || 'Board ' + boardId }}</h2>
+    <div class="header-buttons">
+      <button 
+        class="edit-btn" 
+        (click)="toggleEditMode()" 
+        [disabled]="isLoading">
+        {{ isEditMode ? 'Save Changes' : 'Edit Layout' }}
+      </button>
+      <button 
+        class="create-link-btn" 
+        (click)="toggleCreateForm()" 
+        [disabled]="isLoading">
+        {{ showCreateForm ? 'Cancel' : 'Add Link' }}
+      </button>
+    </div>
   </div>
 
-  <div *ngIf="error" class="error">{{ error }}</div>
+  <form *ngIf="showCreateForm" [formGroup]="createForm" (ngSubmit)="createLink()" class="create-form">
+    <div class="form-group">
+      <label for="url">URL</label>
+      <input 
+        id="url"
+        type="url" 
+        formControlName="url"
+        placeholder="Enter URL (e.g., https://twitter.com/...)"
+      >
+      <small *ngIf="createForm.get('url')?.invalid && createForm.get('url')?.touched">
+        Please enter a valid URL starting with http:// or https://
+      </small>
+    </div>
+    <button type="submit" [disabled]="!createForm.valid || isLoading">
+      {{ isLoading ? 'Adding...' : 'Add Link' }}
+    </button>
+  </form>
 
+  <div *ngIf="error" class="error">{{ error }}</div>
   <div *ngIf="isLoading" class="loading">Loading board...</div>
 
   <div *ngIf="!isLoading && !error" class="board-content">
-    <app-social-media-link [boardId]="boardId"></app-social-media-link>
+    <div *ngFor="let link of links" class="link-container" 
+         [style.top.px]="link.y" 
+         [style.left.px]="link.x"
+         [style.width.px]="link.width"
+         [style.height.px]="link.height">
+      <div *ngIf="isEditMode" class="edit-header">
+        <div class="drag-handle" (mousedown)="onDragStart($event, link)">⋮⋮ Drag</div>
+        <button class="delete-btn" (click)="deleteLink(link.id)">Delete</button>
+      </div>
+      <app-social-media-link 
+        [link]="link"
+        [isEditMode]="isEditMode"
+        (dimensionsChange)="onDimensionsChange($event, link.id)">
+      </app-social-media-link>
+    </div>
   </div>
 </div>
