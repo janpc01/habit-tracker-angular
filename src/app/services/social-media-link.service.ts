@@ -131,4 +131,20 @@ export class SocialMediaLinkService {
       })
     );
   }
+
+  updateLink(linkId: string, updateData: { x?: number, y?: number, width?: number, height?: number }): Observable<SocialMediaLink> {
+    console.log('Updating link:', { linkId, updateData });
+    
+    return this.http.patch<SocialMediaLink>(
+      `${this.baseUrl}/${linkId}`,
+      updateData,
+      { headers: this.getHeaders() }
+    ).pipe(
+      tap(response => console.log('Link updated successfully:', response)),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Update link error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }
