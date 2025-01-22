@@ -1,4 +1,4 @@
-import { Component, AfterViewInit, Input, ElementRef, OnInit } from '@angular/core';
+import { Component, AfterViewInit, Input, ElementRef, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SocialMediaLinkService } from '../../services/social-media-link.service';
@@ -15,9 +15,12 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
   @Input() linkId!: string;
   @Input() isEditMode: boolean = false;
   @Input() link: any;
+  @Output() deleted = new EventEmitter<string>();
   
   safeUrl: SafeResourceUrl = '';
+  safeHtml: any;
   isYoutubeEmbed: boolean = false;
+  isInstagramEmbed: boolean = false;
 
   private element: HTMLElement;
   private pos1 = 0;
@@ -37,25 +40,47 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
     if (this.link?.url) {
       const embedUrl = this.getEmbedUrl(this.link.url);
       if (embedUrl) {
-        this.isYoutubeEmbed = true;
-        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+        if (embedUrl.platform === 'youtube') {
+          this.isYoutubeEmbed = true;
+        } else if (embedUrl.platform === 'instagram') {
+          this.isInstagramEmbed = true;
+        }
+        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl.url);
       } else {
         this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.link.url);
       }
     }
   }
 
-  private getEmbedUrl(url: string): string | null {
+  private getEmbedUrl(url: string): { platform: string, url: string } | null {
     try {
       const parsedUrl = new URL(url);
+      
       if (parsedUrl.host.includes('youtube.com') || parsedUrl.host.includes('youtu.be')) {
         const videoId = this.extractYoutubeVideoId(parsedUrl);
-        return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+        return videoId ? {
+          platform: 'youtube',
+          url: `https://www.youtube.com/embed/${videoId}`
+        } : null;
       }
+      
+      if (parsedUrl.host.includes('instagram.com')) {
+        const postId = this.extractInstagramPostId(parsedUrl);
+        return postId ? {
+          platform: 'instagram',
+          url: `https://www.instagram.com/p/${postId}/embed`
+        } : null;
+      }
+      
       return null;
     } catch (e) {
       return null;
     }
+  }
+
+  private extractInstagramPostId(url: URL): string | null {
+    const matches = url.pathname.match(/\/p\/([^\/]+)/);
+    return matches ? matches[1] : null;
   }
 
   private extractYoutubeVideoId(url: URL): string | null {
@@ -130,5 +155,18 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
   private closeDragElement(): void {
     document.onmouseup = null;
     document.onmousemove = null;
+  }
+
+  deleteLink() {
+    if (!this.linkId) return;
+    
+    this.socialMediaLinkService.deleteLink(this.linkId).subscribe({
+      next: () => {
+        this.deleted.emit(this.linkId);
+      },
+      error: (error) => {
+        console.error('Error deleting link:', error);
+      }
+    });
   }
 }

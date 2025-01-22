@@ -41,7 +41,8 @@
       [boardId]="boardId"
       [linkId]="link.id"
       [isEditMode]="isEditMode"
-      [link]="link">
+      [link]="link"
+      (deleted)="onLinkDeleted($event)">
     </app-social-media-link>
   </div>
 </div>

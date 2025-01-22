@@ -127,4 +127,8 @@ export class BoardComponent implements OnInit {
       this.urlForm.reset();
     }
   }
+
+  onLinkDeleted(linkId: string) {
+    this.links = this.links.filter(link => link.id !== linkId);
+  }
 }

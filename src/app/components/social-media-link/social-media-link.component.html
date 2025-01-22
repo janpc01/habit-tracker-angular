@@ -6,18 +6,28 @@
        [class.hidden]="!isEditMode"
        id="socialMediaLinkHeader">
     <span>Click here to move</span>
+    <button 
+      *ngIf="isEditMode"
+      class="delete-button"
+      (click)="deleteLink()">
+      Delete
+    </button>
   </div>
   <div class="social-media-link-content" [class.full-height]="!isEditMode">
-    <ng-container *ngIf="isYoutubeEmbed; else regularIframe">
+    <ng-container *ngIf="isYoutubeEmbed">
       <iframe 
         [src]="safeUrl" 
         width="100%" 
         height="100%" 
         frameborder="0"
+        allowfullscreen
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
       </iframe>
     </ng-container>
-    <ng-template #regularIframe>
+    <ng-container *ngIf="isInstagramEmbed">
+      <div class="instagram-embed-container" [innerHTML]="safeHtml"></div>
+    </ng-container>
+    <ng-container *ngIf="!isYoutubeEmbed && !isInstagramEmbed">
       <iframe 
         [src]="safeUrl" 
         width="100%" 
@@ -25,6 +35,6 @@
         frameborder="0"
         allowfullscreen>
       </iframe>
-    </ng-template>
+    </ng-container>
   </div>
 </div>
