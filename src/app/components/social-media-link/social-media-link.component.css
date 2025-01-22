@@ -6,20 +6,33 @@
   width: 300px;
   height: 200px;
   resize: none;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .social-media-link-container.edit-mode {
   resize: both;
   border: 2px dashed #2196F3;
+  padding-right: 1px;
+  padding-bottom: 1px;
 }
 
 .social-media-link-header {
-  padding: 10px;
+  padding: 4px 8px;
   cursor: default;
   background-color: #2196F3;
   color: #fff;
   user-select: none;
+  height: 24px;
+  transition: height 0.2s ease;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.social-media-link-header.hidden {
+  height: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .social-media-link-header.edit-mode {
@@ -27,5 +40,33 @@
 }
 
 .social-media-link-content {
-  padding: 15px;
+  height: calc(100% - 24px);
+  padding: 0;
+  position: relative;
+  transition: height 0.2s ease;
+}
+
+.social-media-link-content.full-height {
+  height: 100%;
+}
+
+iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  border: none;
+}
+
+/* Show resize handle more prominently in edit mode */
+.social-media-link-container.edit-mode::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 15px;
+  height: 15px;
+  background: linear-gradient(135deg, transparent 50%, #2196F3 50%);
+  cursor: se-resize;
 }

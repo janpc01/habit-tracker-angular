@@ -1,5 +1,6 @@
-import { Component, AfterViewInit, Input, ElementRef } from '@angular/core';
+import { Component, AfterViewInit, Input, ElementRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SocialMediaLinkService } from '../../services/social-media-link.service';
 
 @Component({
@@ -9,11 +10,14 @@ import { SocialMediaLinkService } from '../../services/social-media-link.service
   templateUrl: './social-media-link.component.html',
   styleUrls: ['./social-media-link.component.css']
 })
-export class SocialMediaLinkComponent implements AfterViewInit {
+export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
   @Input() boardId!: string;
   @Input() linkId!: string;
   @Input() isEditMode: boolean = false;
   @Input() link: any;
+  
+  safeUrl: SafeResourceUrl = '';
+  isYoutubeEmbed: boolean = false;
 
   private element: HTMLElement;
   private pos1 = 0;
@@ -23,9 +27,44 @@ export class SocialMediaLinkComponent implements AfterViewInit {
 
   constructor(
     private elementRef: ElementRef,
-    private socialMediaLinkService: SocialMediaLinkService
+    private socialMediaLinkService: SocialMediaLinkService,
+    private sanitizer: DomSanitizer
   ) {
     this.element = this.elementRef.nativeElement;
+  }
+
+  ngOnInit() {
+    if (this.link?.url) {
+      const embedUrl = this.getEmbedUrl(this.link.url);
+      if (embedUrl) {
+        this.isYoutubeEmbed = true;
+        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
+      } else {
+        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.link.url);
+      }
+    }
+  }
+
+  private getEmbedUrl(url: string): string | null {
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.host.includes('youtube.com') || parsedUrl.host.includes('youtu.be')) {
+        const videoId = this.extractYoutubeVideoId(parsedUrl);
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private extractYoutubeVideoId(url: URL): string | null {
+    if (url.host.includes('youtu.be')) {
+      return url.pathname.substring(1);
+    } else if (url.host.includes('youtube.com')) {
+      return url.searchParams.get('v');
+    }
+    return null;
   }
 
   ngAfterViewInit(): void {

@@ -10,7 +10,7 @@
       </button>
       <button 
         class="add-link-btn" 
-        (click)="addLink()" 
+        (click)="toggleUrlInput()" 
         [disabled]="isLoading">
         Add Link
       </button>
@@ -20,6 +20,20 @@
   <div *ngIf="error" class="error">{{ error }}</div>
 
   <div *ngIf="isLoading" class="loading">Loading...</div>
+
+  <div *ngIf="showUrlInput" class="url-input-container">
+    <form [formGroup]="urlForm" (ngSubmit)="addLink()">
+      <input 
+        type="url" 
+        formControlName="url"
+        placeholder="Enter URL (e.g., https://example.com)"
+        class="url-input">
+      <div class="url-input-actions">
+        <button type="submit" [disabled]="!urlForm.valid || isLoading">Add</button>
+        <button type="button" (click)="toggleUrlInput()">Cancel</button>
+      </div>
+    </form>
+  </div>
 
   <div class="links-container">
     <app-social-media-link

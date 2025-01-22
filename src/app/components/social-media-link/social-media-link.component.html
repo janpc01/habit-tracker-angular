@@ -2,11 +2,29 @@
      [class.edit-mode]="isEditMode" 
      id="socialMediaLink">
   <div class="social-media-link-header" 
-       [class.edit-mode]="isEditMode" 
+       [class.edit-mode]="isEditMode"
+       [class.hidden]="!isEditMode"
        id="socialMediaLinkHeader">
     <span>Click here to move</span>
   </div>
-  <div class="social-media-link-content">
-    <!-- Content will go here -->
+  <div class="social-media-link-content" [class.full-height]="!isEditMode">
+    <ng-container *ngIf="isYoutubeEmbed; else regularIframe">
+      <iframe 
+        [src]="safeUrl" 
+        width="100%" 
+        height="100%" 
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+      </iframe>
+    </ng-container>
+    <ng-template #regularIframe>
+      <iframe 
+        [src]="safeUrl" 
+        width="100%" 
+        height="100%" 
+        frameborder="0"
+        allowfullscreen>
+      </iframe>
+    </ng-template>
   </div>
 </div>
