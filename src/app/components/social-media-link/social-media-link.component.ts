@@ -1,4 +1,4 @@
-import { Component, OnInit, Input, SecurityContext } from '@angular/core';
+import { Component, OnInit, Input, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
@@ -15,213 +15,199 @@ interface SocialMediaLink {
   y?: number;
 }
 
-interface PendingChanges {
-  [linkId: string]: {
-    width?: number;
-    height?: number;
-    x?: number;
-    y?: number;
-  };
-}
-
 @Component({
   selector: 'app-social-media-link',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './social-media-link.component.html',
-  styleUrl: './social-media-link.component.css'
+  styleUrls: ['./social-media-link.component.css']
 })
-export class SocialMediaLinkComponent implements OnInit {
+export class SocialMediaLinkComponent implements OnInit, OnDestroy {
   @Input() boardId!: string;
   links: SocialMediaLink[] = [];
   isLoading = false;
   error = '';
   showCreateForm = false;
+  isEditMode = false;
   createForm: FormGroup;
+
   private resizeObserver: ResizeObserver;
-  private resizeTimeout: any;
-  private dragData = {
+  private dragState = {
     isDragging: false,
     startX: 0,
     startY: 0,
     startTop: 0,
     startLeft: 0,
-    currentLinkId: '',
-    initialWidth: 0,
-    initialHeight: 0
+    currentLinkId: ''
   };
-  isEditMode = false;
-  pendingChanges: PendingChanges = {};
+  private changes: Record<string, { width?: number; height?: number; x?: number; y?: number }> = {};
 
   constructor(
-    private socialMediaLinkService: SocialMediaLinkService,
+    private service: SocialMediaLinkService,
     private fb: FormBuilder,
     private sanitizer: DomSanitizer
   ) {
     this.createForm = this.fb.group({
       url: ['', [Validators.required, Validators.pattern('https?://.+')]]
     });
-    this.resizeObserver = new ResizeObserver(this.onResize.bind(this));
+    this.resizeObserver = new ResizeObserver(entries => this.handleResize(entries));
   }
 
   ngOnInit() {
-    if (this.boardId) {
-      this.loadLinks();
-    }
+    if (this.boardId) this.loadLinks();
   }
 
-  ngAfterViewInit() {
-    this.setupResizeObservers();
-  }
-
-  private setupResizeObservers() {
-    // First disconnect any existing observers
+  ngOnDestroy() {
     this.resizeObserver.disconnect();
-    
-    const containers = document.querySelectorAll('.embed-container');
-    containers.forEach(container => {
-      // Store current dimensions before observing
+  }
+
+  private async loadLinks() {
+    try {
+      this.isLoading = true;
+      const links = await firstValueFrom(this.service.getBoardLinks(this.boardId));
+      this.links = links.map(link => ({
+        ...link,
+        width: link.width,
+        height: link.height,
+        x: link.x || 0,
+        y: link.y || 0,
+        embedUrl: this.getEmbedUrl(link.url)
+      }));
+      setTimeout(() => this.setupObservers(), 0);
+    } catch (error: any) {
+      this.error = error.message || 'Failed to load links';
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  private setupObservers() {
+    this.resizeObserver.disconnect();
+    document.querySelectorAll('.embed-container').forEach(container => {
       const linkId = container.getAttribute('data-link-id');
-      if (linkId) {
-        const link = this.links.find(l => l.id === linkId);
-        if (link) {
-          container.setAttribute('data-original-width', (link.width || this.getDefaultWidth()).toString());
-          container.setAttribute('data-original-height', (link.height || 400).toString());
-        }
+      if (linkId) this.resizeObserver.observe(container);
+    });
+  }
+
+  private handleResize(entries: ResizeObserverEntry[]) {
+    if (!this.isEditMode) return;
+
+    entries.forEach(entry => {
+      const container = entry.target as HTMLElement;
+      const linkId = container.getAttribute('data-link-id');
+      if (!linkId) return;
+
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+
+      if (width > 0 && height > 0) {
+        this.trackChange(linkId, { width, height });
       }
-      this.resizeObserver.observe(container);
     });
   }
 
-  private onResize(entries: ResizeObserverEntry[]) {
-    // If not in edit mode or dragging, ignore resize events
-    if (!this.isEditMode || this.dragData.isDragging) {
-      return;
+  private trackChange(linkId: string, change: { width?: number; height?: number; x?: number; y?: number }) {
+    this.changes[linkId] = { ...this.changes[linkId], ...change };
+    const linkIndex = this.links.findIndex(l => l.id === linkId);
+    if (linkIndex !== -1) {
+      this.links[linkIndex] = { ...this.links[linkIndex], ...change };
     }
-
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
-    }
-
-    this.resizeTimeout = setTimeout(() => {
-      entries.forEach(entry => {
-        const container = entry.target as HTMLElement;
-        const linkId = container.getAttribute('data-link-id');
-        if (linkId) {
-          const width = Math.round(entry.contentRect.width);
-          const height = Math.round(entry.contentRect.height);
-          
-          this.trackChange(linkId, { width, height });
-          
-          container.setAttribute('data-original-width', width.toString());
-          container.setAttribute('data-original-height', height.toString());
-        }
-      });
-    }, 500);
   }
 
-  private updateDimensions(linkId: string, width: number, height: number) {
-    // Validate dimensions before sending
-    if (width <= 0 || height <= 0) {
-      console.warn('Invalid dimensions detected:', { width, height });
-      return;
+  async toggleEditMode() {
+    if (this.isEditMode) {
+      await this.saveChanges();
     }
+    this.isEditMode = !this.isEditMode;
+  }
 
-    console.log('Sending dimensions update:', {
-      linkId,
-      width,
-      height,
-      widthType: typeof width,
-      heightType: typeof height
-    });
-    
-    this.socialMediaLinkService.updateLinkDimensions(linkId, width, height)
-      .subscribe({
-        next: (updatedLink) => {
-          console.log('Successfully updated dimensions');
-          const linkIndex = this.links.findIndex(l => l.id === linkId);
-          if (linkIndex !== -1) {
-            this.links[linkIndex] = {
-              ...this.links[linkIndex],
-              width: updatedLink.width,
-              height: updatedLink.height
-            };
+  private async saveChanges() {
+    if (!Object.keys(this.changes).length) return;
+
+    try {
+      this.isLoading = true;
+      await Promise.all(
+        Object.entries(this.changes).map(async ([linkId, changes]) => {
+          const promises = [];
+          if (changes.width && changes.height) {
+            promises.push(firstValueFrom(this.service.updateLinkDimensions(linkId, changes.width, changes.height)));
           }
-        },
-        error: (error) => {
-          console.error('Failed to update dimensions:', {
-            error,
-            status: error.status,
-            message: error.message,
-            body: error.error
-          });
-        }
-      });
+          if (changes.x !== undefined && changes.y !== undefined) {
+            promises.push(firstValueFrom(this.service.updateLinkPosition(linkId, changes.x, changes.y)));
+          }
+          await Promise.all(promises);
+        })
+      );
+      this.changes = {};
+    } catch (error: any) {
+      this.error = error.message || 'Failed to save changes';
+    } finally {
+      this.isLoading = false;
+    }
   }
 
-  private getEmbedUrl(url: string | undefined): SafeResourceUrl | undefined {
-    if (!url) return undefined;
-    
-    // YouTube handling
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const videoId = this.getYouTubeVideoId(url);
-      if (videoId) {
-        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-        return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-      }
+  onDragStart(event: MouseEvent, link: SocialMediaLink) {
+    if (!(event.target as HTMLElement).classList.contains('drag-handle')) return;
+
+    const container = (event.target as HTMLElement).closest('.embed-container') as HTMLElement;
+    if (!container) return;
+
+    this.dragState = {
+      isDragging: true,
+      startX: event.clientX,
+      startY: event.clientY,
+      startTop: container.offsetTop,
+      startLeft: container.offsetLeft,
+      currentLinkId: link.id
+    };
+
+    document.addEventListener('mousemove', this.onDragMove);
+    document.addEventListener('mouseup', this.onDragEnd);
+  }
+
+  private onDragMove = (event: MouseEvent) => {
+    if (!this.dragState.isDragging) return;
+
+    const deltaX = event.clientX - this.dragState.startX;
+    const deltaY = event.clientY - this.dragState.startY;
+
+    const link = this.links.find(l => l.id === this.dragState.currentLinkId);
+    if (link) {
+      this.trackChange(link.id, {
+        x: Math.max(0, this.dragState.startLeft + deltaX),
+        y: Math.max(0, this.dragState.startTop + deltaY)
+      });
     }
-    
-    // Instagram handling
-    if (url.includes('instagram.com')) {
-      const postId = this.getInstagramPostId(url);
-      if (postId) {
-        const embedUrl = `https://www.instagram.com/p/${postId}/embed`;
-        return this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl);
-      }
+  };
+
+  private onDragEnd = () => {
+    if (!this.dragState.isDragging) return;
+    this.dragState.isDragging = false;
+    document.removeEventListener('mousemove', this.onDragMove);
+    document.removeEventListener('mouseup', this.onDragEnd);
+  };
+
+  private getEmbedUrl(url: string): SafeResourceUrl | undefined {
+    const videoId = url.match(/(?:youtu\.be\/|youtube\.com.*(?:\/|v=|\/v\/|embed\/))([a-zA-Z0-9_-]{11})/)?.[1];
+    if (videoId) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.youtube.com/embed/${videoId}`);
     }
-    
+
+    const instaId = url.match(/instagram\.com\/p\/([^/?#&]+)/)?.[1];
+    if (instaId) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl(`https://www.instagram.com/p/${instaId}/embed`);
+    }
+
     return undefined;
   }
 
-  private getYouTubeVideoId(url: string): string | null {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  }
-
-  private getInstagramPostId(url: string): string | null {
-    // Handle both full URLs and shortened ones
-    const regExp = /instagram\.com\/p\/([^/?#&]+)/;
-    const match = url.match(regExp);
-    return match ? match[1] : null;
-  }
-
-  loadLinks() {
-    this.isLoading = true;
-    console.log('Loading links for board:', this.boardId);
-    
-    this.socialMediaLinkService.getBoardLinks(this.boardId)
-      .subscribe({
-        next: (links: SocialMediaLink[]) => {
-          console.log('Load links response:', links);
-          this.links = (links || []).map(link => ({
-            id: link.id || '',
-            url: link.url || '',
-            width: link.width,
-            height: link.height,
-            x: link.x,
-            y: link.y,
-            embedUrl: this.getEmbedUrl(link.url)
-          }));
-          this.isLoading = false;
-          setTimeout(() => this.setupResizeObservers(), 0);
-        },
-        error: (error) => {
-          console.error('Load links error:', error);
-          this.error = error.message || 'Failed to load links';
-          this.isLoading = false;
-        }
-      });
+  getEmbedType(url: string): string {
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      return 'youtube';
+    } else if (url.includes('instagram.com')) {
+      return 'instagram';
+    }
+    return 'default';
   }
 
   toggleCreateForm() {
@@ -231,261 +217,32 @@ export class SocialMediaLinkComponent implements OnInit {
     }
   }
 
-  createLink() {
-    if (this.createForm.valid) {
-      this.isLoading = true;
-      console.log('Form value:', this.createForm.value);
-      
-      this.socialMediaLinkService.createLink(this.boardId, this.createForm.value.url)
-        .subscribe({
-          next: (response) => {
-            console.log('Create link response:', response);
-            this.loadLinks();
-            this.showCreateForm = false;
-            this.createForm.reset();
-            this.isLoading = false;
-          },
-          error: (error) => {
-            if (error.status !== 201) {
-              console.error('Create link error:', error);
-              this.error = error.message || 'Failed to create link';
-            } else {
-              this.loadLinks();
-              this.showCreateForm = false;
-              this.createForm.reset();
-            }
-            this.isLoading = false;
-          }
-        });
-    }
-  }
+  async createLink() {
+    if (!this.createForm.valid) return;
 
-  deleteLink(linkId: string) {
-    if (confirm('Are you sure you want to delete this link?')) {
-      this.isLoading = true;
-      this.socialMediaLinkService.deleteLink(linkId).subscribe({
-        next: () => {
-          this.loadLinks();
-        },
-        error: (error) => {
-          this.error = error.message;
-          this.isLoading = false;
-        }
-      });
-    }
-  }
-
-  getEmbedType(url: string): string {
-    if (!url) return '';
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      return 'youtube';
-    }
-    if (url.includes('instagram.com')) {
-      return 'instagram';
-    }
-    return '';
-  }
-
-  public getDefaultWidth(): number {
-    const container = document.querySelector('.embed-container');
-    if (container) {
-      return Math.round(container.clientWidth);
-    }
-    return 550; // max-width from CSS
-  }
-
-  onDragStart(event: MouseEvent, link: SocialMediaLink) {
-    if (!(event.target as HTMLElement).classList.contains('drag-handle')) {
-      return;
-    }
-
-    const container = (event.target as HTMLElement).closest('.embed-container') as HTMLElement;
-    if (!container) return;
-
-    // Disconnect ResizeObserver during drag
-    this.resizeObserver.disconnect();
-
-    this.dragData = {
-      isDragging: true,
-      startX: event.clientX,
-      startY: event.clientY,
-      startTop: container.offsetTop,
-      startLeft: container.offsetLeft,
-      currentLinkId: link.id,
-      initialWidth: link.width || this.getDefaultWidth(),
-      initialHeight: link.height || 400
-    };
-
-    event.preventDefault();
-    document.addEventListener('mousemove', this.onDragMove.bind(this));
-    document.addEventListener('mouseup', this.onDragEnd.bind(this));
-  }
-
-  private onDragMove(event: MouseEvent) {
-    if (!this.dragData.isDragging) return;
-
-    const deltaX = event.clientX - this.dragData.startX;
-    const deltaY = event.clientY - this.dragData.startY;
-
-    const container = document.querySelector(`[data-link-id="${this.dragData.currentLinkId}"]`) as HTMLElement;
-    if (container) {
-      const newTop = this.dragData.startTop + deltaY;
-      const newLeft = this.dragData.startLeft + deltaX;
-      
-      container.style.top = `${newTop}px`;
-      container.style.left = `${newLeft}px`;
-    }
-  }
-
-  private updatePosition(linkId: string, top: number, left: number) {
-    console.log('Sending position update:', {
-      linkId,
-      x: left,  // left maps to x
-      y: top    // top maps to y
-    });
-    
-    this.socialMediaLinkService.updateLinkPosition(linkId, left, top)
-      .subscribe({
-        next: (updatedLink) => {
-          console.log('Successfully updated position');
-          const linkIndex = this.links.findIndex(l => l.id === linkId);
-          if (linkIndex !== -1) {
-            this.links[linkIndex] = {
-              ...this.links[linkIndex],
-              x: updatedLink.x,
-              y: updatedLink.y
-            };
-          }
-        },
-        error: (error) => {
-          console.error('Failed to update position:', {
-            error,
-            status: error.status,
-            message: error.message,
-            body: error.error
-          });
-        }
-      });
-  }
-
-  private onDragEnd() {
-    if (!this.dragData.isDragging) return;
-
-    const container = document.querySelector(`[data-link-id="${this.dragData.currentLinkId}"]`) as HTMLElement;
-    if (container) {
-      const top = container.offsetTop;
-      const left = container.offsetLeft;
-      
-      if (this.isEditMode) {
-        this.trackChange(this.dragData.currentLinkId, { x: left, y: top });
-      }
-    }
-
-    this.dragData.isDragging = false;
-    document.removeEventListener('mousemove', this.onDragMove.bind(this));
-    document.removeEventListener('mouseup', this.onDragEnd.bind(this));
-  }
-
-  toggleEditMode() {
-    if (this.isEditMode) {
-      this.saveChanges();
-    } else {
-      this.isEditMode = true;
-      this.pendingChanges = {};
-    }
-  }
-
-  private trackChange(linkId: string, change: { width?: number; height?: number; x?: number; y?: number }) {
-    if (!this.pendingChanges[linkId]) {
-      this.pendingChanges[linkId] = {};
-    }
-    this.pendingChanges[linkId] = { ...this.pendingChanges[linkId], ...change };
-
-    // Update local state immediately
-    const linkIndex = this.links.findIndex(l => l.id === linkId);
-    if (linkIndex !== -1) {
-      this.links[linkIndex] = {
-        ...this.links[linkIndex],
-        ...change
-      };
-    }
-  }
-
-  private async saveChanges() {
-    if (Object.keys(this.pendingChanges).length === 0) {
-      this.isEditMode = false;
-      return;
-    }
-
-    this.isLoading = true;
     try {
-      // Process each link's changes
-      const savePromises = Object.entries(this.pendingChanges).map(([linkId, changes]) => {
-        const promises = [];
-        
-        // Get the current dimensions from the DOM
-        const container = document.querySelector(`[data-link-id="${linkId}"]`) as HTMLElement;
-        if (container) {
-          const currentWidth = container.offsetWidth;
-          const currentHeight = container.offsetHeight;
-          const currentTop = container.offsetTop;
-          const currentLeft = container.offsetLeft;
-
-          // Always update dimensions with current values
-          promises.push(
-            firstValueFrom(
-              this.socialMediaLinkService.updateLinkDimensions(
-                linkId,
-                currentWidth,
-                currentHeight
-              )
-            )
-          );
-
-          // Always update position with current values
-          promises.push(
-            firstValueFrom(
-              this.socialMediaLinkService.updateLinkPosition(
-                linkId,
-                currentLeft,
-                currentTop
-              )
-            )
-          );
-
-          // Update local state
-          const linkIndex = this.links.findIndex(l => l.id === linkId);
-          if (linkIndex !== -1) {
-            this.links[linkIndex] = {
-              ...this.links[linkIndex],
-              width: currentWidth,
-              height: currentHeight,
-              x: currentLeft,
-              y: currentTop
-            };
-          }
-        }
-        
-        return Promise.all(promises);
-      });
-
-      await Promise.all(savePromises);
-      this.pendingChanges = {};
-      this.isEditMode = false;
-    } catch (error) {
-      console.error('Error saving changes:', error);
-      this.error = 'Failed to save changes';
+      this.isLoading = true;
+      await firstValueFrom(this.service.createLink(this.boardId, this.createForm.value.url));
+      this.showCreateForm = false;
+      await this.loadLinks();
+    } catch (error: any) {
+      this.error = error.message || 'Failed to create link';
     } finally {
       this.isLoading = false;
     }
   }
 
-  ngOnDestroy() {
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
-    if (this.resizeTimeout) {
-      clearTimeout(this.resizeTimeout);
+  async deleteLink(linkId: string) {
+    if (!confirm('Are you sure you want to delete this link?')) return;
+
+    try {
+      this.isLoading = true;
+      await firstValueFrom(this.service.deleteLink(linkId));
+      await this.loadLinks();
+    } catch (error: any) {
+      this.error = error.message || 'Failed to delete link';
+    } finally {
+      this.isLoading = false;
     }
   }
 }

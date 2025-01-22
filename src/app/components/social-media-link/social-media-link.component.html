@@ -48,8 +48,8 @@
       <div *ngIf="link.embedUrl" 
            [class]="'embed-container ' + getEmbedType(link.url) + (isEditMode ? ' edit-mode' : '')"
            [attr.data-link-id]="link.id"
-           [style.width.px]="link.width || getDefaultWidth()"
-           [style.height.px]="link.height || 400"
+           [style.width.px]="link.width"
+           [style.height.px]="link.height"
            [style.top.px]="link.y || 0"
            [style.left.px]="link.x || 0">
         <div class="embed-header" *ngIf="isEditMode">
