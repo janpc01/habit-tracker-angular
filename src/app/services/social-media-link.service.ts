@@ -147,4 +147,28 @@ export class SocialMediaLinkService {
       })
     );
   }
+
+  updateLinkPositionAndDimensions(linkId: string, x: number, y: number, width: number, height: number): Observable<SocialMediaLink> {
+    console.log('Updating position and dimensions:', { linkId, x, y, width, height });
+    
+    return this.http.patch<SocialMediaLink>(
+      `${this.baseUrl}/${linkId}/position-dimensions`,
+      null,
+      { 
+        headers: this.getHeaders(),
+        params: {
+          x: Math.round(x).toString(),
+          y: Math.round(y).toString(),
+          width: Math.round(width).toString(),
+          height: Math.round(height).toString()
+        }
+      }
+    ).pipe(
+      tap(response => console.log('Position and dimensions updated successfully:', response)),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Update position and dimensions error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 }

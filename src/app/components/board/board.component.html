@@ -1,3 +1,33 @@
 <div class="board-container">
-  <!-- Component template will go here -->
+  <div class="board-header">
+    <h1>Board</h1>
+    <div class="board-actions">
+      <button 
+        class="edit-mode-btn" 
+        (click)="toggleEditMode()"
+        [class.active]="isEditMode">
+        {{ isEditMode ? 'Save Layout' : 'Edit Layout' }}
+      </button>
+      <button 
+        class="add-link-btn" 
+        (click)="addLink()" 
+        [disabled]="isLoading">
+        Add Link
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error">{{ error }}</div>
+
+  <div *ngIf="isLoading" class="loading">Loading...</div>
+
+  <div class="links-container">
+    <app-social-media-link
+      *ngFor="let link of links"
+      [boardId]="boardId"
+      [linkId]="link.id"
+      [isEditMode]="isEditMode"
+      [link]="link">
+    </app-social-media-link>
+  </div>
 </div>

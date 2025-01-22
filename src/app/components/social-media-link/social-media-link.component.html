@@ -1,3 +1,12 @@
-<div class="social-media-link-container">
-  <!-- Component template will go here -->
+<div class="social-media-link-container" 
+     [class.edit-mode]="isEditMode" 
+     id="socialMediaLink">
+  <div class="social-media-link-header" 
+       [class.edit-mode]="isEditMode" 
+       id="socialMediaLinkHeader">
+    <span>Click here to move</span>
+  </div>
+  <div class="social-media-link-content">
+    <!-- Content will go here -->
+  </div>
 </div>

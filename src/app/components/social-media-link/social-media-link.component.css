@@ -1,0 +1,31 @@
+.social-media-link-container {
+  position: absolute;
+  z-index: 9;
+  background-color: #ffffff;
+  border: 1px solid #d3d3d3;
+  width: 300px;
+  height: 200px;
+  resize: none;
+  overflow: auto;
+}
+
+.social-media-link-container.edit-mode {
+  resize: both;
+  border: 2px dashed #2196F3;
+}
+
+.social-media-link-header {
+  padding: 10px;
+  cursor: default;
+  background-color: #2196F3;
+  color: #fff;
+  user-select: none;
+}
+
+.social-media-link-header.edit-mode {
+  cursor: move;
+}
+
+.social-media-link-content {
+  padding: 15px;
+}
