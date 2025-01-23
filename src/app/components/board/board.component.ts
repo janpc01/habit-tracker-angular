@@ -4,6 +4,7 @@ import { RouterLink, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SocialMediaLinkComponent } from '../social-media-link/social-media-link.component';
 import { SocialMediaLinkService } from '../../services/social-media-link.service';
+import { BoardService } from '../../services/board.service';
 
 @Component({
   selector: 'app-board',
@@ -14,6 +15,7 @@ import { SocialMediaLinkService } from '../../services/social-media-link.service
 })
 export class BoardComponent implements OnInit {
   boardId: string = '';
+  boardName: string = '';
   links: any[] = [];
   isLoading: boolean = false;
   error: string = '';
@@ -24,19 +26,32 @@ export class BoardComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private socialMediaLinkService: SocialMediaLinkService,
+    private boardService: BoardService,
     private fb: FormBuilder
   ) {
+    console.log('BoardComponent: Initializing component');
     this.urlForm = this.fb.group({
       url: ['', [Validators.required, Validators.pattern('https?://.+')]]
     });
   }
 
   ngOnInit() {
+    console.log('BoardComponent: Loading board data');
     this.boardId = this.route.snapshot.paramMap.get('id') || '';
-    this.loadLinks();
+    this.boardService.getBoard(this.boardId).subscribe({
+      next: (board) => {
+        this.boardName = board.name;
+        this.loadLinks();
+      },
+      error: (error) => {
+        this.error = error.message;
+        this.loadLinks();
+      }
+    });
   }
 
   toggleEditMode() {
+    console.log('BoardComponent: Toggling edit mode:', !this.isEditMode);
     this.isEditMode = !this.isEditMode;
     
     if (!this.isEditMode) {
@@ -45,18 +60,18 @@ export class BoardComponent implements OnInit {
   }
 
   private saveAllPositions() {
+    console.log('BoardComponent: Saving positions for all links');
     const container = document.querySelector('.links-container') as HTMLElement;
     if (!container) return;
     
     const containerRect = container.getBoundingClientRect();
     const linkElements = document.querySelectorAll('.social-media-link-container');
-    
+
     linkElements.forEach(element => {
       const linkId = element.closest('app-social-media-link')?.getAttribute('ng-reflect-link-id');
       if (!linkId) return;
 
       const rect = element.getBoundingClientRect();
-      // Calculate position relative to container
       const relativeX = rect.left - containerRect.left;
       const relativeY = rect.top - containerRect.top;
 
@@ -68,7 +83,6 @@ export class BoardComponent implements OnInit {
         rect.height
       ).subscribe({
         error: (error) => {
-          console.error('Error saving position:', error);
           this.error = 'Failed to save some positions';
         }
       });
@@ -76,6 +90,7 @@ export class BoardComponent implements OnInit {
   }
 
   loadLinks() {
+    console.log('BoardComponent: Loading links for board:', this.boardId);
     if (!this.boardId) return;
     
     this.isLoading = true;
@@ -98,21 +113,28 @@ export class BoardComponent implements OnInit {
   }
 
   addLink() {
+    console.log('BoardComponent: Adding new link with URL:', this.urlForm.value.url);
     if (!this.boardId || !this.urlForm.valid) return;
     
     this.isLoading = true;
     this.socialMediaLinkService.createLink(this.boardId, this.urlForm.value.url).subscribe({
       next: (newLink) => {
-        this.links.push({
-          ...newLink,
-          x: 0,
-          y: 0,
-          width: 300,
-          height: 200
-        });
-        this.isLoading = false;
-        this.showUrlInput = false;
-        this.urlForm.reset();
+        if (newLink && newLink.id) {
+          this.links.push({
+            ...newLink,
+            x: 0,
+            y: 0,
+            width: 300,
+            height: 200
+          });
+          this.isLoading = false;
+          this.showUrlInput = false;
+          this.urlForm.reset();
+        } else {
+          this.loadLinks();
+          this.showUrlInput = false;
+          this.urlForm.reset();
+        }
       },
       error: (error) => {
         this.error = error.message;
@@ -122,6 +144,7 @@ export class BoardComponent implements OnInit {
   }
 
   toggleUrlInput() {
+    console.log('BoardComponent: Toggling URL input visibility:', !this.showUrlInput);
     this.showUrlInput = !this.showUrlInput;
     if (!this.showUrlInput) {
       this.urlForm.reset();
@@ -129,6 +152,7 @@ export class BoardComponent implements OnInit {
   }
 
   onLinkDeleted(linkId: string) {
+    console.log('BoardComponent: Removing deleted link:', linkId);
     this.links = this.links.filter(link => link.id !== linkId);
   }
 }

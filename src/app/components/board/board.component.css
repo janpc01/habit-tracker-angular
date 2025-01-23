@@ -97,3 +97,25 @@
   background-color: #f0f0f0;
   color: #333;
 }
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  color: #2196F3;
+  cursor: pointer;
+  padding: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.back-btn:hover {
+  color: #1976D2;
+}

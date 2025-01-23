@@ -1,6 +1,9 @@
 <div class="board-container">
   <div class="board-header">
-    <h1>Board</h1>
+    <div class="header-left">
+      <button class="back-btn" routerLink="/home">← Home</button>
+      <h1>{{ boardName || 'Untitled Board' }}</h1>
+    </div>
     <div class="board-actions">
       <button 
         class="edit-mode-btn" 
