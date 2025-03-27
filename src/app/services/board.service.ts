@@ -19,12 +19,12 @@ export class BoardService {
     return new HttpHeaders().set('Authorization', 'Bearer ' + localStorage.getItem('token'));
   }
 
-  createBoard(name: string): Observable<any> {
+  createBoard(title: string): Observable<any> {
     const userId = this.authService.getUserId();
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
     }
-    return this.http.post(`${this.baseUrl}/user/${userId}`, { name }, { headers: this.getHeaders() });
+    return this.http.post(`${this.baseUrl}`, { title }, { headers: this.getHeaders() });
   }
 
   getBoard(id: string): Observable<any> {
@@ -36,7 +36,7 @@ export class BoardService {
     if (!userId) {
       return throwError(() => new Error('User not authenticated'));
     }
-    return this.http.get(`${this.baseUrl}/user/${userId}`, { headers: this.getHeaders() });
+    return this.http.get(`${this.baseUrl}`, { headers: this.getHeaders() });
   }
 
   deleteBoard(boardId: string): Observable<any> {

@@ -37,22 +37,25 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
   }
 
   ngOnInit() {
-    if (this.link?.url) {
-      const embedUrl = this.getEmbedUrl(this.link.url);
+    console.log('yabadada');
+    if (this.link?.link) {
+      console.log('Link URL:', this.link?.link);
+      const embedUrl = this.getEmbedUrl(this.link.link);
       if (embedUrl) {
         if (embedUrl.platform === 'youtube') {
           this.isYoutubeEmbed = true;
         } else if (embedUrl.platform === 'instagram') {
           this.isInstagramEmbed = true;
         }
-        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl.url);
+        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl.link);
+        // console.log("Sanitized URL:", this.safeUrl);
       } else {
-        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.link.url);
+        this.safeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(this.link.link);
       }
     }
   }
 
-  private getEmbedUrl(url: string): { platform: string, url: string } | null {
+  private getEmbedUrl(url: string): { platform: string, link: string } | null {
     try {
       const parsedUrl = new URL(url);
       
@@ -60,7 +63,7 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
         const videoId = this.extractYoutubeVideoId(parsedUrl);
         return videoId ? {
           platform: 'youtube',
-          url: `https://www.youtube.com/embed/${videoId}`
+          link: `https://www.youtube.com/embed/${videoId}`
         } : null;
       }
       
@@ -68,7 +71,7 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
         const postId = this.extractInstagramPostId(parsedUrl);
         return postId ? {
           platform: 'instagram',
-          url: `https://www.instagram.com/p/${postId}/embed`
+          link: `https://www.instagram.com/p/${postId}/embed`
         } : null;
       }
       
@@ -160,7 +163,7 @@ export class SocialMediaLinkComponent implements AfterViewInit, OnInit {
   deleteLink() {
     if (!this.linkId) return;
     
-    this.socialMediaLinkService.deleteLink(this.linkId).subscribe({
+    this.socialMediaLinkService.deleteLink(this.linkId, this.boardId).subscribe({
       next: () => {
         this.deleted.emit(this.linkId);
       },

@@ -31,7 +31,11 @@ export class BoardComponent implements OnInit {
   ) {
     console.log('BoardComponent: Initializing component');
     this.urlForm = this.fb.group({
-      url: ['', [Validators.required, Validators.pattern('https?://.+')]]
+      link: ['', [Validators.required, Validators.pattern('https?://.+')]],
+      x: [0],       // Add default value for x
+      y: [0],       // Add default value for y
+      width: [300], // Add default value for width
+      height: [200] // Add default value for height
     });
   }
 
@@ -40,7 +44,7 @@ export class BoardComponent implements OnInit {
     this.boardId = this.route.snapshot.paramMap.get('id') || '';
     this.boardService.getBoard(this.boardId).subscribe({
       next: (board) => {
-        this.boardName = board.name;
+        this.boardName = board.title;
         this.loadLinks();
       },
       error: (error) => {
@@ -76,6 +80,7 @@ export class BoardComponent implements OnInit {
       const relativeY = rect.top - containerRect.top;
 
       this.socialMediaLinkService.updateLinkPositionAndDimensions(
+        this.boardId,
         linkId,
         relativeX,
         relativeY,
@@ -90,34 +95,27 @@ export class BoardComponent implements OnInit {
   }
 
   loadLinks() {
-    console.log('BoardComponent: Loading links for board:', this.boardId);
-    if (!this.boardId) return;
-    
     this.isLoading = true;
     this.socialMediaLinkService.getBoardLinks(this.boardId).subscribe({
-      next: (links) => {
-        this.links = links.map(link => ({
-          ...link,
-          x: link.x,
-          y: link.y,
-          width: link.width,
-          height: link.height
-        }));
-        this.isLoading = false;
-      },
-      error: (error) => {
-        this.error = error.message;
-        this.isLoading = false;
-      }
+        next: (links) => {
+            this.links = Array.isArray(links) ? links : [];
+            console.log("Links after fetch:", this.links);
+            this.isLoading = false;
+        },
+        error: (error) => {
+            this.error = error.message;
+            this.isLoading = false;
+        }
     });
   }
 
   addLink() {
     console.log('BoardComponent: Adding new link with URL:', this.urlForm.value.url);
+    console.log(this.urlForm.value);
     if (!this.boardId || !this.urlForm.valid) return;
     
     this.isLoading = true;
-    this.socialMediaLinkService.createLink(this.boardId, this.urlForm.value.url).subscribe({
+    this.socialMediaLinkService.createLink(this.boardId, this.urlForm.value).subscribe({
       next: (newLink) => {
         if (newLink && newLink.id) {
           this.links.push({

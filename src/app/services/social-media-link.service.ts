@@ -17,7 +17,7 @@ interface SocialMediaLink {
   providedIn: 'root'
 })
 export class SocialMediaLinkService {
-  private baseUrl = `${environment.apiUrl}/social-media-links`;
+  private baseUrl = `${environment.apiUrl}`;
 
   constructor(private http: HttpClient) { }
 
@@ -27,38 +27,45 @@ export class SocialMediaLinkService {
       .set('Accept', 'application/json');
   }
 
-  createLink(boardId: string, url: string): Observable<SocialMediaLink> {
-    console.log('Creating link with:', { boardId, url });
-    const payload = { url };
+  // createLink(boardId: string, url: string): Observable<SocialMediaLink> {
+  //   console.log('Creating link with:', { boardId, url });
+  //   const payload = { url };
 
+  //   return this.http.post<SocialMediaLink>(
+  //     `${this.baseUrl}/boards/${boardId}`,
+  //     payload,
+  //     { 
+  //       headers: this.getHeaders(),
+  //       observe: 'response'
+  //     }
+  //   ).pipe(
+  //     tap(response => {
+  //       console.log('Response status:', response.status);
+  //       console.log('Response headers:', response.headers);
+  //     }),
+  //     map(response => {
+  //       // If we get a 201 status, consider it successful even if we can't parse the response
+  //       if (response.status === 201) {
+  //         return { id: '', url } as SocialMediaLink;
+  //       }
+  //       return response.body as SocialMediaLink;
+  //     }),
+  //     catchError((error: HttpErrorResponse) => {
+  //       // If it's a parsing error with status 201, treat it as success
+  //       if (error.status === 201) {
+  //         console.log('Created successfully, but response parsing failed');
+  //         return of({ id: '', url } as SocialMediaLink);
+  //       }
+  //       console.error('Error details:', error);
+  //       return throwError(() => error);
+  //     })
+  //   );
+  // }
+  createLink(boardId: string, payload: {link: string, x: number, y: number, width: number, height: number}): Observable<SocialMediaLink> {
     return this.http.post<SocialMediaLink>(
-      `${this.baseUrl}/board/${boardId}`,
-      payload,
-      { 
-        headers: this.getHeaders(),
-        observe: 'response'
-      }
-    ).pipe(
-      tap(response => {
-        console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
-      }),
-      map(response => {
-        // If we get a 201 status, consider it successful even if we can't parse the response
-        if (response.status === 201) {
-          return { id: '', url } as SocialMediaLink;
-        }
-        return response.body as SocialMediaLink;
-      }),
-      catchError((error: HttpErrorResponse) => {
-        // If it's a parsing error with status 201, treat it as success
-        if (error.status === 201) {
-          console.log('Created successfully, but response parsing failed');
-          return of({ id: '', url } as SocialMediaLink);
-        }
-        console.error('Error details:', error);
-        return throwError(() => error);
-      })
+      `${this.baseUrl}/boards/${boardId}/items`, 
+      { item: payload }, 
+      { headers: this.getHeaders() }
     );
   }
 
@@ -66,7 +73,7 @@ export class SocialMediaLinkService {
     console.log('Getting links for board:', boardId);
     
     return this.http.get<SocialMediaLink[]>(
-      `${this.baseUrl}/board/${boardId}`,
+      `${this.baseUrl}/boards/${boardId}/items`,
       { 
         headers: this.getHeaders()
       }
@@ -81,9 +88,9 @@ export class SocialMediaLinkService {
     );
   }
 
-  deleteLink(linkId: string): Observable<void> {
+  deleteLink(linkId: string, boardId: string): Observable<void> {
     return this.http.delete<void>(
-      `${this.baseUrl}/${linkId}`,
+      `${this.baseUrl}/boards/${boardId}/items/${linkId}`,
       { headers: this.getHeaders() }
     );
   }
@@ -148,21 +155,13 @@ export class SocialMediaLinkService {
     );
   }
 
-  updateLinkPositionAndDimensions(linkId: string, x: number, y: number, width: number, height: number): Observable<SocialMediaLink> {
+  updateLinkPositionAndDimensions(boardId: string, linkId: string, x: number, y: number, width: number, height: number): Observable<SocialMediaLink> {
     console.log('Updating position and dimensions:', { linkId, x, y, width, height });
-    
+
     return this.http.patch<SocialMediaLink>(
-      `${this.baseUrl}/${linkId}/position-dimensions`,
-      null,
-      { 
-        headers: this.getHeaders(),
-        params: {
-          x: Math.round(x).toString(),
-          y: Math.round(y).toString(),
-          width: Math.round(width).toString(),
-          height: Math.round(height).toString()
-        }
-      }
+      `${this.baseUrl}/boards/${boardId}/items/${linkId}`,
+      { item: { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) } },
+      { headers: this.getHeaders() }
     ).pipe(
       tap(response => console.log('Position and dimensions updated successfully:', response)),
       catchError((error: HttpErrorResponse) => {
@@ -171,4 +170,5 @@ export class SocialMediaLinkService {
       })
     );
   }
+
 }

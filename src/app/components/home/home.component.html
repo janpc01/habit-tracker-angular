@@ -18,10 +18,10 @@
                 <input 
                     id="boardName"
                     type="text" 
-                    formControlName="name"
+                    formControlName="title"
                     placeholder="Enter board name"
                 >
-                <small *ngIf="createBoardForm.get('name')?.invalid && createBoardForm.get('name')?.touched">
+                <small *ngIf="createBoardForm.get('title')?.invalid && createBoardForm.get('title')?.touched">
                     Board name is required
                 </small>
             </div>
@@ -43,7 +43,7 @@
             <div *ngFor="let board of boards" class="board-item">
                 <div class="board-content">
                     <a [routerLink]="['/boards', board.id]">
-                        {{ board.name || 'Untitled Board' }}
+                        {{ board.title || 'Untitled Board' }}
                     </a>
                     <button 
                         class="delete-btn" 

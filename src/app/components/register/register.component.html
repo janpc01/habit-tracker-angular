@@ -28,6 +28,20 @@
       </small>
     </div>
 
+    <div>
+      <label for="password_confirmation">Confirm Password</label>
+      <input 
+        id="password_confirmation"
+        type="password" 
+        formControlName="password_confirmation"
+        placeholder="Confirm your password"
+        autocomplete="new-password"
+      >
+      <small *ngIf="registerForm.get('password_confirmation')?.invalid && registerForm.get('password_confirmation')?.touched">
+        Password confirmation is required
+      </small>
+    </div>
+
     <div *ngIf="error">{{ error }}</div>
 
     <button type="submit" [disabled]="!registerForm.valid">Register</button>

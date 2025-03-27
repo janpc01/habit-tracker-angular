@@ -34,8 +34,14 @@ export class LoginComponent {
     if (this.loginForm.valid) {
       this.authService.login(this.loginForm.value).subscribe({
         next: (response) => {
-          localStorage.setItem('token', response.token);
-          this.router.navigate(['/home']);
+          // Extract token from Authorization header
+          const token = response.headers.get('Authorization')?.split(' ')[1];
+          if (token) {
+            localStorage.setItem('token', token);
+            this.router.navigate(['/home']);
+          } else {
+            this.error = 'Token missing from response header';
+          }
         },
         error: (error) => {
           this.error = error.error.message || 'Login failed';
@@ -43,4 +49,5 @@ export class LoginComponent {
       });
     }
   }
+  
 }

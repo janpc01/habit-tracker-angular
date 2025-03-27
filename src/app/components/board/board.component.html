@@ -28,9 +28,16 @@
     <form [formGroup]="urlForm" (ngSubmit)="addLink()">
       <input 
         type="url" 
-        formControlName="url"
+        formControlName="link"
         placeholder="Enter URL (e.g., https://example.com)"
         class="url-input">
+      
+      <!-- Hidden fields for x, y, width, height -->
+      <input type="hidden" formControlName="x" value="0">
+      <input type="hidden" formControlName="y" value="0">
+      <input type="hidden" formControlName="width" value="300">
+      <input type="hidden" formControlName="height" value="200">
+  
       <div class="url-input-actions">
         <button type="submit" [disabled]="!urlForm.valid || isLoading">Add</button>
         <button type="button" (click)="toggleUrlInput()">Cancel</button>
@@ -38,14 +45,15 @@
     </form>
   </div>
 
-  <div class="links-container">
+  <div *ngIf="!isLoading && links.length > 0" class="links-container">
     <app-social-media-link
-      *ngFor="let link of links"
-      [boardId]="boardId"
-      [linkId]="link.id"
-      [isEditMode]="isEditMode"
-      [link]="link"
-      (deleted)="onLinkDeleted($event)">
+        *ngFor="let link of links"
+        [boardId]="boardId"
+        [linkId]="link.id"
+        [isEditMode]="isEditMode"
+        [link]="link"
+        (deleted)="onLinkDeleted($event)">
     </app-social-media-link>
   </div>
+
 </div>

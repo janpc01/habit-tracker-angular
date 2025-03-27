@@ -34,12 +34,12 @@ export class HomeComponent implements OnInit {
             name: ['', Validators.required]
         });
         this.createBoardForm = this.fb.group({
-            name: ['', Validators.required]
+            title: ['', Validators.required]
         });
     }
 
     ngOnInit() {
-        this.loadDashboards();
+        // this.loadDashboards();
         this.loadBoards();
     }
 
@@ -124,7 +124,7 @@ export class HomeComponent implements OnInit {
     createBoard() {
         if (this.createBoardForm.valid) {
             this.isLoading = true;
-            this.boardService.createBoard(this.createBoardForm.value.name).subscribe({
+            this.boardService.createBoard(this.createBoardForm.value.title).subscribe({
                 next: (response) => {
                     this.router.navigate(['/boards', response.id]);
                 },
